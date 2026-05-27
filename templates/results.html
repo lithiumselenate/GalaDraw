@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-title">
+  <div>
+    <p class="eyebrow">记录</p>
+    <h1>抽奖结果</h1>
+  </div>
+  <div class="actions">
+    <a class="secondary" href="{{ url_for('export_results') }}">导出 CSV</a>
+    <form method="post" action="{{ url_for('reset_results') }}">
+      <button class="danger" type="submit">重置结果</button>
+    </form>
+  </div>
+</div>
+
+<section class="panel">
+  <table>
+    <thead>
+      <tr><th>奖项</th><th>编号</th><th>姓名</th><th>部门</th><th>时间</th></tr>
+    </thead>
+    <tbody>
+      {% for result in results %}
+        <tr>
+          <td>{{ result.prize.name }}</td>
+          <td>{{ result.employee.employee_no }}</td>
+          <td>{{ result.employee.name }}</td>
+          <td>{{ result.employee.department }}</td>
+          <td>{{ result.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">暂无抽奖结果。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

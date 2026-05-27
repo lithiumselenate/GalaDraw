@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>现场抽奖 - BEE Lucky Draw</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body class="showtime">
+    <main class="showtime-stage">
+      <div class="showtime-top">
+        <a class="backstage-link" href="{{ url_for('index') }}">返回后台</a>
+        <div class="showtime-status">
+          <span>可参与：{{ candidates|length }}人</span>
+          <span>{{ prizes|length }} 个奖项</span>
+          <span>姓名滚动：{{ "已开启" if settings.roll_names else "已关闭" }}</span>
+        </div>
+      </div>
+
+      <section class="live-draw" aria-labelledby="draw-title">
+        <p class="showtime-kicker">BEE Lucky Draw</p>
+        <h1 id="draw-title">幸运抽奖</h1>
+        <p class="showtime-subtitle">选择奖项。</p>
+
+        <form class="prize-picker" method="get" action="{{ url_for('draw_page') }}">
+          <label>
+            奖项
+            <select name="prize_id" onchange="this.form.submit()" {% if not prizes %}disabled{% endif %}>
+              {% for prize in prizes %}
+                <option value="{{ prize.id }}" {% if selected_prize and prize.id == selected_prize.id %}selected{% endif %}>
+                  {{ prize.name }} - {{ prize.winner_count }} 人
+                </option>
+              {% endfor %}
+            </select>
+          </label>
+        </form>
+
+        <div
+          class="draw-display is-idle {% if not settings.roll_names %}no-roll{% endif %} {% if not settings.countdown %}no-countdown{% endif %}"
+          data-draw-display
+        >
+          {% if settings.countdown %}
+            <div class="countdown-ring" data-countdown data-seconds="{{ settings.countdown_seconds }}" hidden>
+              {{ settings.countdown_seconds }}
+            </div>
+          {% endif %}
+
+          <div class="ticker-grid slots-{{ slot_count }}">
+            {% for _ in range(slot_count) %}
+              <div class="ticker-window" data-ticker>
+                <span data-ticker-name></span>
+              </div>
+            {% endfor %}
+            {% if slot_count == 0 %}
+              <div class="ticker-window">
+                <span>暂无可抽取名额</span>
+              </div>
+            {% endif %}
+          </div>
+          {% if settings.roll_names %}
+            <input type="hidden" data-roll-names value="1">
+          {% else %}
+            <div class="draw-placeholder">即将抽出 {{ slot_count }} 位中奖者</div>
+          {% endif %}
+        </div>
+
+        <form class="showtime-form" method="post" action="{{ url_for('draw') }}" data-draw-form>
+          <input type="hidden" name="request_id" value="">
+          {% if selected_prize %}
+            <input type="hidden" name="prize_id" value="{{ selected_prize.id }}">
+          {% endif %}
+          <input type="hidden" data-candidates value='{{ candidates|map(attribute="name")|list|tojson }}'>
+
+          <button class="showtime-button" type="submit" {% if not selected_prize or not candidates %}disabled{% endif %}>
+            开始抽奖
+          </button>
+        </form>
+
+        {% if not prizes %}
+          <p class="showtime-note">请先在后台创建至少一个奖项。</p>
+        {% elif not candidates %}
+          <p class="showtime-note">当前没有可参与抽奖的员工。</p>
+        {% endif %}
+      </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='draw.js') }}"></script>
+  </body>
+</html>

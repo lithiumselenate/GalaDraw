@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">后台管理</p>
+    <h1>BEE Lucky Draw</h1>
+    <p class="muted">管理员工、配置奖项、执行抽奖，并导出中奖结果。</p>
+  </div>
+  <a class="primary action" href="{{ url_for('draw_page') }}">开始抽奖</a>
+</section>
+
+<section class="stats">
+  <div><strong>{{ stats.employees }}</strong><span>员工</span></div>
+  <div><strong>{{ stats.eligible }}</strong><span>可参与</span></div>
+  <div><strong>{{ stats.prizes }}</strong><span>奖项</span></div>
+  <div><strong>{{ stats.winners }}</strong><span>已中奖</span></div>
+</section>
+
+<section class="panel">
+  <h2>最近中奖</h2>
+  {% if recent_results %}
+    <table>
+      <thead>
+        <tr><th>奖项</th><th>员工</th><th>部门</th><th>时间</th></tr>
+      </thead>
+      <tbody>
+        {% for result in recent_results %}
+          <tr>
+            <td>{{ result.prize.name }}</td>
+            <td>{{ result.employee.name }} #{{ result.employee.employee_no }}</td>
+            <td>{{ result.employee.department }}</td>
+            <td>{{ result.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">暂无中奖记录。</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,42 @@
+<!doctype html>
+{% set use_logo_brand = true %}
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BEE Lucky Draw</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand {% if use_logo_brand %}brand-with-logo{% endif %}" href="{{ url_for('index') }}">
+        {% if use_logo_brand %}
+          <img src="{{ url_for('static', filename='bee-logo.png') }}" alt="BEE">
+          <span>Lucky Draw</span>
+        {% else %}
+          BEE Lucky Draw
+        {% endif %}
+      </a>
+      <nav>
+        <a href="{{ url_for('employees') }}">员工</a>
+        <a href="{{ url_for('prizes') }}">奖项</a>
+        <a href="{{ url_for('draw_page') }}">抽奖</a>
+        <a href="{{ url_for('results') }}">结果</a>
+      </nav>
+    </header>
+
+    <main class="shell">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="messages">
+            {% for category, message in messages %}
+              <div class="message {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>
