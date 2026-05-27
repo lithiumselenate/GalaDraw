@@ -26,7 +26,7 @@
           <td>{{ result.employee.employee_no }}</td>
           <td>{{ result.employee.name }}</td>
           <td>{{ result.employee.department }}</td>
-          <td>{{ result.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+          <td>{{ (result.created_at + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S") }}</td>
         </tr>
       {% else %}
         <tr><td colspan="5">暂无抽奖结果。</td></tr>
