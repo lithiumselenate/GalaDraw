@@ -65,7 +65,7 @@ docker compose up --build
 http://localhost:8000
 ```
 
-## Notes
+## 备注
 
 
-For production, set a strong `SECRET_KEY` and back up `instance/gala_draw.db`.
+生产环境应该使用强密钥，定期备份`instance/gala_draw.db`.
