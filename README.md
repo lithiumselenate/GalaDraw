@@ -1,52 +1,49 @@
-# GalaDraw
+# GalaBee
 
-A small monolithic gala lottery app.
+轻量级应用，用于年会抽奖，主要使用codex(ChatGPT) vibe coding生成
 
-It includes:
+- 管理员工列表
+- 使用CSV导入员工
+- 奖品等级设置
+- 服务端抽取
+- 导出中奖名单
+- 基于SQLite
+- 可用于Docker容器
 
-- Employee management
-- CSV employee import
-- Prize level configuration
-- Server-side winner drawing
-- Winner result export
-- SQLite by default
-- Docker-friendly deployment
-
-## Local Development
-
-Prerequisites:
+## 本地环境
+#### 需求：
 
 - Python 3.10+
 - pip
 
-Create and activate a virtual environment:
+启动虚拟环境
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-Install dependencies:
+安装依赖：
 
 ```powershell
 pip install -r requirements.txt
 ```
 
-Run the app:
+运行
 
 ```powershell
 python app.py
 ```
 
-Open:
+打开网页
 
 ```text
 http://localhost:8000
 ```
 
-## CSV Import Format
+## CSV 导入格式
 
-Use UTF-8 CSV with these headers:
+UTF-8 CSV，表头如下:
 
 ```csv
 employee_no,name,department
@@ -56,13 +53,13 @@ employee_no,name,department
 
 ## Docker
 
-Build and run:
+建立和运行：
 
 ```powershell
 docker compose up --build
 ```
 
-Then open:
+打开：
 
 ```text
 http://localhost:8000
@@ -70,6 +67,5 @@ http://localhost:8000
 
 ## Notes
 
-The first version uses a simple event rule: one employee can win at most once across the whole event.
 
 For production, set a strong `SECRET_KEY` and back up `instance/gala_draw.db`.
