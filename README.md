@@ -1,6 +1,6 @@
 # GalaBee
 
-轻量级应用，用于年会抽奖，主要使用codex(ChatGPT) vibe coding生成
+轻量级应用，用于年会抽奖，基于flask和sqlite
 
 - 管理员工列表
 - 使用CSV导入员工
