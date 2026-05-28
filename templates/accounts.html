@@ -18,15 +18,15 @@
         角色
         <select name="role">
           {% for role in roles %}
-            <option value="{{ role }}">{{ role }}</option>
+            <option value="{{ role }}">{{ role_labels.get(role, role) }}</option>
           {% endfor %}
         </select>
       </label>
       <label>
-        Status
+        状态
         <select name="status">
           {% for status in statuses %}
-            <option value="{{ status }}" {% if status == "active" %}selected{% endif %}>{{ status }}</option>
+            <option value="{{ status }}" {% if status == "active" %}selected{% endif %}>{{ status_labels.get(status, status) }}</option>
           {% endfor %}
         </select>
       </label>
@@ -39,7 +39,7 @@
       <h2>角色权限</h2>
       {% for role in ["admin", "user"] %}
         <fieldset class="permission-group">
-          <legend>{{ role }}</legend>
+          <legend>{{ role_labels.get(role, role) }}</legend>
           {% for permission, label in permissions.items() %}
             <label class="check">
               <input
@@ -48,7 +48,7 @@
                 value="{{ permission }}"
                 {% if permission in role_permissions[role] %}checked{% endif %}
               >
-              {{ permission }}
+              {{ label }}
             </label>
           {% endfor %}
         </fieldset>
@@ -62,7 +62,7 @@
   <h2>所有账户</h2>
   <table>
     <thead>
-      <tr><th>用户名</th><th>角色</th><th>Status</th><th>员工</th><th>创建时间</th><th>操作</th></tr>
+      <tr><th>用户名</th><th>角色</th><th>状态</th><th>员工</th><th>创建时间</th><th>操作</th></tr>
     </thead>
     <tbody>
       {% for user in users %}
@@ -73,19 +73,19 @@
               <form class="inline-form" method="post" action="{{ url_for('update_account_role', user_id=user.id) }}">
                 <select name="role" onchange="this.form.submit()">
                   {% for role in roles %}
-                    <option value="{{ role }}" {% if user.role == role %}selected{% endif %}>{{ role }}</option>
+                    <option value="{{ role }}" {% if user.role == role %}selected{% endif %}>{{ role_labels.get(role, role) }}</option>
                   {% endfor %}
                 </select>
               </form>
             {% else %}
-              {{ user.role }}
+              {{ role_labels.get(user.role, user.role) }}
             {% endif %}
           </td>
           <td>
             <form class="inline-form" method="post" action="{{ url_for('update_account_status', user_id=user.id) }}">
               <select name="status" onchange="this.form.submit()">
                 {% for status in statuses %}
-                  <option value="{{ status }}" {% if user.status == status %}selected{% endif %}>{{ status }}</option>
+                  <option value="{{ status }}" {% if user.status == status %}selected{% endif %}>{{ status_labels.get(status, status) }}</option>
                 {% endfor %}
               </select>
             </form>
@@ -100,12 +100,12 @@
           <td>{{ user.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
           <td>
             {% if has_permission('account.delete') %}
-              <form class="inline-form" method="post" action="{{ url_for('delete_account', user_id=user.id) }}" onsubmit="return confirm('Delete this account?');">
+              <form class="inline-form" method="post" action="{{ url_for('delete_account', user_id=user.id) }}" onsubmit="return confirm('确认删除该账户？');">
                 <button class="danger" type="submit">删除</button>
               </form>
             {% endif %}
             {% if user.employee and has_permission('account.employee.link.manage') %}
-              <form class="inline-form" method="post" action="{{ url_for('unlink_account_employee', user_id=user.id) }}" onsubmit="return confirm('Unlink this employee?');">
+              <form class="inline-form" method="post" action="{{ url_for('unlink_account_employee', user_id=user.id) }}" onsubmit="return confirm('确认解除该员工关联？');">
                 <button class="secondary" type="submit">解除员工关联</button>
               </form>
             {% endif %}

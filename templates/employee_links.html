@@ -50,7 +50,7 @@
         <tr>
           <td>{{ request_item.user.username }}</td>
           <td>{{ request_item.employee.name }} #{{ request_item.employee.employee_no }}</td>
-          <td>{{ request_item.status }}</td>
+          <td>{{ request_status_labels.get(request_item.status, request_item.status) }}</td>
           <td>{{ request_item.requested_at.strftime("%Y-%m-%d %H:%M") }}</td>
           <td>{{ request_item.reviewed_by.username if request_item.reviewed_by else "-" }}</td>
         </tr>

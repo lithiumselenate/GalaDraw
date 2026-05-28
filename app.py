@@ -18,35 +18,50 @@ ADMIN_INITIAL_PASSWORD = "Changeme123!"
 ROLES = ("superadmin", "admin", "user")
 STATUSES = ("pending", "active", "disabled")
 PERMISSIONS = {
-    "account.create": "Create accounts",
-    "account.delete": "Delete accounts",
-    "account.disable": "Disable accounts",
-    "account.role.update": "Change account roles",
-    "account.permission.update": "Change role permissions",
-    "account.self.employee.request": "Request employee binding",
-    "account.employee.link.review": "Review employee binding requests",
-    "account.employee.link.manage": "Manage employee bindings",
-    "registration.review": "Review registrations",
-    "dashboard.view": "View dashboard",
-    "employee.view": "View employees",
-    "employee.create": "Create employees",
-    "employee.import": "Import employees",
-    "employee.update": "Update employees",
-    "employee.reset": "Reset employees",
-    "prize.view": "View prizes",
-    "prize.create": "Create prizes",
-    "prize.update": "Update prizes",
-    "prize.disable": "Disable prizes",
-    "prize.delete": "Delete prizes",
-    "prize.reset": "Reset prizes",
-    "draw.configure": "Configure draw",
-    "draw.execute": "Run draw",
-    "draw.result.view": "View draw results",
-    "draw.result.export": "Export draw results",
-    "draw.result.reset": "Reset draw results",
-    "checkin.self": "Check in",
-    "checkin.view_all": "View all check-ins",
-    "checkin.manage": "Manage check-ins",
+    "account.create": "创建账户",
+    "account.delete": "删除账户",
+    "account.disable": "禁用账户",
+    "account.role.update": "修改账户角色",
+    "account.permission.update": "修改角色权限",
+    "account.self.employee.request": "申请员工信息关联",
+    "account.employee.link.review": "审核员工信息关联",
+    "account.employee.link.manage": "管理员工信息关联",
+    "registration.review": "审核注册申请",
+    "dashboard.view": "查看概览",
+    "employee.view": "查看员工",
+    "employee.create": "新增员工",
+    "employee.import": "导入员工",
+    "employee.update": "更新员工",
+    "employee.reset": "重置员工",
+    "prize.view": "查看奖项",
+    "prize.create": "新增奖项",
+    "prize.update": "更新奖项",
+    "prize.disable": "禁用奖项",
+    "prize.delete": "删除奖项",
+    "prize.reset": "重置奖项",
+    "draw.configure": "配置抽奖",
+    "draw.execute": "执行抽奖",
+    "draw.result.view": "查看抽奖结果",
+    "draw.result.export": "导出抽奖结果",
+    "draw.result.reset": "重置抽奖结果",
+    "checkin.self": "本人签到",
+    "checkin.view_all": "查看所有签到",
+    "checkin.manage": "管理签到",
+}
+ROLE_LABELS = {
+    "superadmin": "超级管理员",
+    "admin": "管理员",
+    "user": "普通用户",
+}
+STATUS_LABELS = {
+    "pending": "待审核",
+    "active": "已启用",
+    "disabled": "已禁用",
+}
+REQUEST_STATUS_LABELS = {
+    "pending": "待审核",
+    "approved": "已批准",
+    "rejected": "已拒绝",
 }
 DEFAULT_ROLE_PERMISSIONS = {
     "admin": {
@@ -333,7 +348,7 @@ def has_any_permission(*permissions):
 def require_permission(permission):
     if has_permission(permission):
         return None
-    flash("You do not have permission to access that page.", "error")
+    flash("你没有访问该页面的权限。", "error")
     if getattr(g, "current_user", None) and has_permission("checkin.self"):
         return redirect(url_for("checkin"))
     return redirect(url_for("login"))
@@ -473,20 +488,20 @@ def register_routes(app):
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         if not username or not password:
-            flash("Please enter a username and password.", "error")
+            flash("请输入用户名和密码。", "error")
             return redirect(url_for("register"))
         if len(password) < 8:
-            flash("Password must be at least 8 characters.", "error")
+            flash("密码至少需要 8 个字符。", "error")
             return redirect(url_for("register"))
         if User.query.filter_by(username=username).first():
-            flash("That username is already registered.", "error")
+            flash("该用户名已注册。", "error")
             return redirect(url_for("register"))
 
         user = User(username=username, role="user", status="pending")
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
-        flash("Registration submitted. Please wait for approval.", "success")
+        flash("注册申请已提交，请等待审核。", "success")
         return redirect(url_for("login"))
 
     @app.post("/login")
@@ -524,6 +539,10 @@ def register_routes(app):
             "has_permission": has_permission,
             "permissions": PERMISSIONS,
             "roles": ROLES,
+            "role_labels": ROLE_LABELS,
+            "status_labels": STATUS_LABELS,
+            "request_status_labels": REQUEST_STATUS_LABELS,
+            "timedelta": timedelta,
         }
 
     @app.get("/account")
@@ -555,46 +574,46 @@ def register_routes(app):
         confirm_password = request.form.get("confirm_password", "")
 
         if not g.current_user.check_password(current_password):
-            flash("Current password is incorrect.", "error")
+            flash("当前密码不正确。", "error")
             return redirect(url_for("account"))
         if len(new_password) < 8:
-            flash("New password must be at least 8 characters.", "error")
+            flash("新密码至少需要 8 个字符。", "error")
             return redirect(url_for("account"))
         if new_password != confirm_password:
-            flash("New password confirmation does not match.", "error")
+            flash("两次输入的新密码不一致。", "error")
             return redirect(url_for("account"))
 
         g.current_user.set_password(new_password)
         db.session.commit()
-        flash("Password updated.", "success")
+        flash("密码已更新。", "success")
         return redirect(url_for("account"))
 
     @app.post("/account/employee-link")
     @permission_required("account.self.employee.request")
     def request_employee_link():
         if g.current_user.employee_id:
-            flash("Your account is already linked to an employee.", "error")
+            flash("你的账户已经关联了员工信息。", "error")
             return redirect(url_for("account"))
 
         employee_no = request.form.get("employee_no", "").strip()
         name = request.form.get("name", "").strip()
         if not employee_no:
-            flash("Please enter your employee number.", "error")
+            flash("请输入员工编号。", "error")
             return redirect(url_for("account"))
 
         employee = Employee.query.filter_by(employee_no=employee_no).first()
         if employee is None or (name and employee.name.strip() != name):
-            flash("No matching employee was found.", "error")
+            flash("没有找到匹配的员工。", "error")
             return redirect(url_for("account"))
         if User.query.filter_by(employee_id=employee.id).first():
-            flash("That employee is already linked to another account.", "error")
+            flash("该员工已经关联到其他账户。", "error")
             return redirect(url_for("account"))
         pending_request = EmployeeLinkRequest.query.filter_by(
             user_id=g.current_user.id,
             status="pending",
         ).first()
         if pending_request:
-            flash("You already have a pending binding request.", "error")
+            flash("你已经有一条待审核的关联申请。", "error")
             return redirect(url_for("account"))
 
         db.session.add(
@@ -605,7 +624,7 @@ def register_routes(app):
             )
         )
         db.session.commit()
-        flash("Employee binding request submitted for review.", "success")
+        flash("员工信息关联申请已提交审核。", "success")
         return redirect(url_for("account"))
 
     @app.get("/employee-links")
@@ -632,21 +651,21 @@ def register_routes(app):
     def approve_employee_link(request_id):
         link_request = EmployeeLinkRequest.query.get_or_404(request_id)
         if link_request.status != "pending":
-            flash("This request has already been reviewed.", "error")
+            flash("该申请已经审核过。", "error")
             return redirect(url_for("employee_link_requests"))
         if link_request.user.employee_id:
             link_request.status = "rejected"
             link_request.reviewed_at = datetime.utcnow()
             link_request.reviewed_by_id = g.current_user.id
             db.session.commit()
-            flash("The user is already linked to an employee.", "error")
+            flash("该用户已经关联了员工信息。", "error")
             return redirect(url_for("employee_link_requests"))
         if User.query.filter_by(employee_id=link_request.employee_id).first():
             link_request.status = "rejected"
             link_request.reviewed_at = datetime.utcnow()
             link_request.reviewed_by_id = g.current_user.id
             db.session.commit()
-            flash("The employee is already linked to another account.", "error")
+            flash("该员工已经关联到其他账户。", "error")
             return redirect(url_for("employee_link_requests"))
 
         link_request.user.employee_id = link_request.employee_id
@@ -654,7 +673,7 @@ def register_routes(app):
         link_request.reviewed_at = datetime.utcnow()
         link_request.reviewed_by_id = g.current_user.id
         db.session.commit()
-        flash("Employee binding approved.", "success")
+        flash("员工信息关联已批准。", "success")
         return redirect(url_for("employee_link_requests"))
 
     @app.post("/employee-links/<int:request_id>/reject")
@@ -662,13 +681,13 @@ def register_routes(app):
     def reject_employee_link(request_id):
         link_request = EmployeeLinkRequest.query.get_or_404(request_id)
         if link_request.status != "pending":
-            flash("This request has already been reviewed.", "error")
+            flash("该申请已经审核过。", "error")
             return redirect(url_for("employee_link_requests"))
         link_request.status = "rejected"
         link_request.reviewed_at = datetime.utcnow()
         link_request.reviewed_by_id = g.current_user.id
         db.session.commit()
-        flash("Employee binding rejected.", "success")
+        flash("员工信息关联已拒绝。", "success")
         return redirect(url_for("employee_link_requests"))
 
     @app.get("/accounts")
@@ -697,13 +716,13 @@ def register_routes(app):
         role = request.form.get("role", "user")
         status = request.form.get("status", "active")
         if role not in ROLES or status not in STATUSES:
-            flash("Invalid role or status.", "error")
+            flash("角色或状态无效。", "error")
             return redirect(url_for("accounts"))
         if not username or not password:
-            flash("Please enter a username and password.", "error")
+            flash("请输入用户名和密码。", "error")
             return redirect(url_for("accounts"))
         if User.query.filter_by(username=username).first():
-            flash("That username already exists.", "error")
+            flash("该用户名已存在。", "error")
             return redirect(url_for("accounts"))
 
         user = User(username=username, role=role, status=status)
@@ -713,7 +732,7 @@ def register_routes(app):
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
-        flash("Account created.", "success")
+        flash("账户已创建。", "success")
         return redirect(url_for("accounts"))
 
     @app.post("/accounts/<int:user_id>/role")
@@ -722,21 +741,21 @@ def register_routes(app):
         user = User.query.get_or_404(user_id)
         role = request.form.get("role", "user")
         if role not in ROLES:
-            flash("Invalid role.", "error")
+            flash("角色无效。", "error")
             return redirect(url_for("accounts"))
         if user.username == ADMIN_USERNAME and role != "superadmin":
-            flash("The built-in superadmin cannot be demoted.", "error")
+            flash("内置超级管理员不能被降级。", "error")
             return redirect(url_for("accounts"))
         active_superadmins = User.query.filter_by(
             role="superadmin",
             status="active",
         ).count()
         if user.role == "superadmin" and role != "superadmin" and active_superadmins <= 1:
-            flash("At least one active superadmin is required.", "error")
+            flash("系统至少需要保留一个已启用的超级管理员。", "error")
             return redirect(url_for("accounts"))
         user.role = role
         db.session.commit()
-        flash("Role updated.", "success")
+        flash("角色已更新。", "success")
         return redirect(url_for("accounts"))
 
     @app.post("/accounts/<int:user_id>/status")
@@ -745,27 +764,27 @@ def register_routes(app):
         user = User.query.get_or_404(user_id)
         status = request.form.get("status", "active")
         if status not in STATUSES:
-            flash("Invalid status.", "error")
+            flash("状态无效。", "error")
             return redirect(url_for("accounts"))
         if g.current_user.role != "superadmin" and user.role != "user":
-            flash("Only a superadmin can change staff account status.", "error")
+            flash("只有超级管理员可以修改管理账户状态。", "error")
             return redirect(url_for("accounts"))
         if user.username == ADMIN_USERNAME and status != "active":
-            flash("The built-in superadmin cannot be disabled.", "error")
+            flash("内置超级管理员不能被禁用。", "error")
             return redirect(url_for("accounts"))
         active_superadmins = User.query.filter_by(
             role="superadmin",
             status="active",
         ).count()
         if user.role == "superadmin" and status != "active" and active_superadmins <= 1:
-            flash("At least one active superadmin is required.", "error")
+            flash("系统至少需要保留一个已启用的超级管理员。", "error")
             return redirect(url_for("accounts"))
         user.status = status
         if status == "active" and user.approved_at is None:
             user.approved_at = datetime.utcnow()
             user.approved_by_id = g.current_user.id
         db.session.commit()
-        flash("Account status updated.", "success")
+        flash("账户状态已更新。", "success")
         return redirect(url_for("accounts"))
 
     @app.post("/accounts/<int:user_id>/delete")
@@ -773,14 +792,14 @@ def register_routes(app):
     def delete_account(user_id):
         user = User.query.get_or_404(user_id)
         if user.username == ADMIN_USERNAME or user.id == g.current_user.id:
-            flash("This account cannot be deleted.", "error")
+            flash("该账户不能删除。", "error")
             return redirect(url_for("accounts"))
         active_superadmins = User.query.filter_by(
             role="superadmin",
             status="active",
         ).count()
         if user.role == "superadmin" and user.status == "active" and active_superadmins <= 1:
-            flash("At least one active superadmin is required.", "error")
+            flash("系统至少需要保留一个已启用的超级管理员。", "error")
             return redirect(url_for("accounts"))
         CheckIn.query.filter_by(user_id=user.id).delete()
         EmployeeLinkRequest.query.filter_by(user_id=user.id).delete()
@@ -794,7 +813,7 @@ def register_routes(app):
         )
         db.session.delete(user)
         db.session.commit()
-        flash("Account deleted.", "success")
+        flash("账户已删除。", "success")
         return redirect(url_for("accounts"))
 
     @app.post("/accounts/<int:user_id>/employee/unlink")
@@ -802,11 +821,11 @@ def register_routes(app):
     def unlink_account_employee(user_id):
         user = User.query.get_or_404(user_id)
         if g.current_user.role != "superadmin" and user.role != "user":
-            flash("Only a superadmin can unlink staff accounts.", "error")
+            flash("只有超级管理员可以解除管理账户的员工关联。", "error")
             return redirect(url_for("accounts"))
         user.employee_id = None
         db.session.commit()
-        flash("Employee link removed.", "success")
+        flash("员工关联已解除。", "success")
         return redirect(url_for("accounts"))
 
     @app.post("/accounts/permissions")
@@ -825,7 +844,7 @@ def register_routes(app):
                         )
                     )
         db.session.commit()
-        flash("Role permissions updated.", "success")
+        flash("角色权限已更新。", "success")
         return redirect(url_for("accounts"))
 
     @app.get("/registrations")
@@ -843,7 +862,7 @@ def register_routes(app):
         user.approved_at = datetime.utcnow()
         user.approved_by_id = g.current_user.id
         db.session.commit()
-        flash("Registration approved.", "success")
+        flash("注册申请已批准。", "success")
         return redirect(url_for("registrations"))
 
     @app.post("/registrations/<int:user_id>/reject")
@@ -851,11 +870,11 @@ def register_routes(app):
     def reject_registration(user_id):
         user = User.query.get_or_404(user_id)
         if user.username == ADMIN_USERNAME:
-            flash("The built-in superadmin cannot be rejected.", "error")
+            flash("内置超级管理员不能被拒绝。", "error")
             return redirect(url_for("registrations"))
         user.status = "disabled"
         db.session.commit()
-        flash("Registration rejected.", "success")
+        flash("注册申请已拒绝。", "success")
         return redirect(url_for("registrations"))
 
     @app.get("/checkin")
@@ -887,11 +906,11 @@ def register_routes(app):
             .first()
         )
         if existing and today_start <= existing.created_at < tomorrow_start:
-            flash("You have already checked in today.", "success")
+            flash("你今天已经签到。", "success")
             return redirect(url_for("checkin"))
         db.session.add(CheckIn(user_id=g.current_user.id))
         db.session.commit()
-        flash("Check-in recorded.", "success")
+        flash("签到已记录。", "success")
         return redirect(url_for("checkin"))
 
     @app.get("/")
@@ -973,9 +992,17 @@ def register_routes(app):
         reader = csv.DictReader(StringIO(text))
         added = 0
         for row in reader:
-            employee_no = (row.get("employee_no") or row.get("number") or "").strip()
-            name = (row.get("name") or "").strip()
-            department = (row.get("department") or "").strip()
+            employee_no = (
+                row.get("employee_no")
+                or row.get("number")
+                or row.get("员工编号")
+                or row.get("编号")
+                or ""
+            ).strip()
+            name = (row.get("name") or row.get("姓名") or "").strip()
+            department = (
+                row.get("department") or row.get("部门") or ""
+            ).strip()
             if not employee_no or not name:
                 continue
             exists = Employee.query.filter_by(employee_no=employee_no).first()
@@ -1279,7 +1306,7 @@ def register_routes(app):
     def export_results():
         output = StringIO()
         writer = csv.writer(output)
-        writer.writerow(["prize", "employee_no", "name", "department", "drawn_at"])
+        writer.writerow(["奖项", "员工编号", "姓名", "部门", "抽奖时间"])
         for result in DrawResult.query.order_by(DrawResult.created_at).all():
             writer.writerow(
                 [

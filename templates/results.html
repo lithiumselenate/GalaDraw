@@ -7,7 +7,7 @@
     <h1>抽奖结果</h1>
   </div>
   <div class="actions">
-    <a class="secondary" href="{{ url_for('export_results') }}">导出 CSV</a>
+    <a class="secondary" href="{{ url_for('export_results') }}">导出结果文件</a>
     <form method="post" action="{{ url_for('reset_results') }}">
       <button class="danger" type="submit">重置结果</button>
     </form>

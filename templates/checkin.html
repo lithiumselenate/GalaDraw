@@ -10,9 +10,9 @@
 
 <section class="panel">
   <h2>{{ current_user.username }}</h2>
-  <p class="muted">你的权限: {{ current_user.role }} | 状态: {{ current_user.status }}</p>
+  <p class="muted">你的角色：{{ role_labels.get(current_user.role, current_user.role) }} | 状态：{{ status_labels.get(current_user.status, current_user.status) }}</p>
   {% if current_user.employee %}
-    <p class="muted">Employee: {{ current_user.employee.name }} #{{ current_user.employee.employee_no }}</p>
+    <p class="muted">员工：{{ current_user.employee.name }} #{{ current_user.employee.employee_no }}</p>
   {% else %}
     <p class="muted">没有已关联的员工信息。请提交关联请求。</p>
   {% endif %}
@@ -33,7 +33,7 @@
       {% for item in checkins %}
         <tr><td>{{ item.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td></tr>
       {% else %}
-        <tr><td>No check-ins yet.</td></tr>
+        <tr><td>暂无签到记录。</td></tr>
       {% endfor %}
     </tbody>
   </table>

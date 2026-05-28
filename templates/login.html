@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>登录 - BEE Lucky Draw</title>
+    <title>登录 - BEE 幸运抽奖</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   </head>
   <body class="login-page">
@@ -11,7 +11,7 @@
       <section class="login-panel">
         <div class="login-brand">
           <img src="{{ url_for('static', filename='bee-logo.png') }}" alt="BEE">
-          <span>Lucky Draw</span>
+          <span>幸运抽奖</span>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -35,7 +35,7 @@
           </label>
           <button class="primary" type="submit">登录</button>
         </form>
-        <a class="secondary action" href="{{ url_for('register') }}">Register</a>
+        <a class="secondary action" href="{{ url_for('register') }}">注册账户</a>
       </section>
     </main>
   </body>

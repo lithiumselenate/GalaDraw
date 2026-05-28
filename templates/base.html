@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>BEE Lucky Draw</title>
+    <title>BEE 幸运抽奖</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   </head>
   <body>
@@ -12,9 +12,9 @@
       <a class="brand {% if use_logo_brand %}brand-with-logo{% endif %}" href="{{ url_for('index') }}">
         {% if use_logo_brand %}
           <img src="{{ url_for('static', filename='bee-logo.png') }}" alt="BEE">
-          <span>Lucky Draw</span>
+          <span>幸运抽奖</span>
         {% else %}
-          BEE Lucky Draw
+          BEE 幸运抽奖
         {% endif %}
       </a>
       <nav>
@@ -50,7 +50,7 @@
         {% endif %}
         {% if current_user %}
           <form class="nav-logout" method="post" action="{{ url_for('logout') }}">
-            <button type="submit">Logout</button>
+            <button type="submit">退出登录</button>
           </form>
         {% endif %}
       </nav>

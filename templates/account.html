@@ -3,60 +3,60 @@
 {% block content %}
 <div class="page-title">
   <div>
-    <p class="eyebrow">Profile</p>
-    <h1>Account</h1>
+    <p class="eyebrow">个人资料</p>
+    <h1>我的账户</h1>
   </div>
 </div>
 
 <section class="grid two">
   <div class="panel">
     <h2>{{ current_user.username }}</h2>
-    <p class="muted">Role: {{ current_user.role }} | Status: {{ current_user.status }}</p>
+    <p class="muted">角色：{{ role_labels.get(current_user.role, current_user.role) }} | 状态：{{ status_labels.get(current_user.status, current_user.status) }}</p>
     {% if current_user.employee %}
       <table>
         <tbody>
-          <tr><th>Employee no.</th><td>{{ current_user.employee.employee_no }}</td></tr>
-          <tr><th>Name</th><td>{{ current_user.employee.name }}</td></tr>
-          <tr><th>Department</th><td>{{ current_user.employee.department }}</td></tr>
-          <tr><th>Draw eligible</th><td>{{ "Yes" if current_user.employee.eligible else "No" }}</td></tr>
+          <tr><th>员工编号</th><td>{{ current_user.employee.employee_no }}</td></tr>
+          <tr><th>姓名</th><td>{{ current_user.employee.name }}</td></tr>
+          <tr><th>部门</th><td>{{ current_user.employee.department }}</td></tr>
+          <tr><th>抽奖资格</th><td>{{ "可参与" if current_user.employee.eligible else "不可参与" }}</td></tr>
         </tbody>
       </table>
     {% elif pending_request %}
-      <p class="muted">Binding request pending for {{ pending_request.employee.name }} #{{ pending_request.employee.employee_no }}.</p>
+      <p class="muted">{{ pending_request.employee.name }} #{{ pending_request.employee.employee_no }} 的关联申请正在等待审核。</p>
     {% else %}
-      <p class="muted">No employee is linked to this account yet.</p>
+      <p class="muted">当前账户尚未关联员工信息。</p>
     {% endif %}
   </div>
 
-  {% if not current_user.employee and not pending_request %}
+  {% if has_permission('account.self.employee.request') and not current_user.employee and not pending_request %}
     <form class="panel" method="post" action="{{ url_for('request_employee_link') }}">
-      <h2>Request employee link</h2>
-      <label>Employee no.<input name="employee_no" required></label>
-      <label>Name<input name="name" placeholder="Optional but recommended"></label>
-      <button class="primary" type="submit">Submit for review</button>
+      <h2>申请关联员工信息</h2>
+      <label>员工编号<input name="employee_no" required></label>
+      <label>姓名<input name="name" placeholder="建议填写"></label>
+      <button class="primary" type="submit">提交审核</button>
     </form>
   {% endif %}
 
   <form class="panel" method="post" action="{{ url_for('change_account_password') }}">
-    <h2>Change password</h2>
-    <label>Current password<input name="current_password" type="password" autocomplete="current-password" required></label>
-    <label>New password<input name="new_password" type="password" autocomplete="new-password" minlength="8" required></label>
-    <label>Confirm new password<input name="confirm_password" type="password" autocomplete="new-password" minlength="8" required></label>
-    <button class="primary" type="submit">Update password</button>
+    <h2>修改密码</h2>
+    <label>当前密码<input name="current_password" type="password" autocomplete="current-password" required></label>
+    <label>新密码<input name="new_password" type="password" autocomplete="new-password" minlength="8" required></label>
+    <label>确认新密码<input name="confirm_password" type="password" autocomplete="new-password" minlength="8" required></label>
+    <button class="primary" type="submit">更新密码</button>
   </form>
 </section>
 
 <section class="panel">
-  <h2>Recent requests</h2>
+  <h2>最近申请</h2>
   <table>
     <thead>
-      <tr><th>Employee</th><th>Status</th><th>Requested</th><th>Reviewed</th></tr>
+      <tr><th>员工</th><th>状态</th><th>申请时间</th><th>审核时间</th></tr>
     </thead>
     <tbody>
       {% for request_item in recent_requests %}
         <tr>
           <td>{{ request_item.employee.name }} #{{ request_item.employee.employee_no }}</td>
-          <td>{{ request_item.status }}</td>
+          <td>{{ request_status_labels.get(request_item.status, request_item.status) }}</td>
           <td>{{ request_item.requested_at.strftime("%Y-%m-%d %H:%M") }}</td>
           <td>
             {% if request_item.reviewed_at %}
@@ -67,7 +67,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="4">No binding requests.</td></tr>
+        <tr><td colspan="4">暂无关联申请。</td></tr>
       {% endfor %}
     </tbody>
   </table>
