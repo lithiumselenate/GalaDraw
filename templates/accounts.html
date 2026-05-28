@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-title">
+  <div>
+    <p class="eyebrow">访问</p>
+    <h1>账户管理</h1>
+  </div>
+</div>
+
+<section class="grid two">
+  {% if has_permission('account.create') %}
+    <form class="panel" method="post" action="{{ url_for('create_account') }}">
+      <h2>创建账户</h2>
+      <label>用户名<input name="username" required></label>
+      <label>密码<input name="password" type="password" minlength="8" required></label>
+      <label>
+        角色
+        <select name="role">
+          {% for role in roles %}
+            <option value="{{ role }}">{{ role }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Status
+        <select name="status">
+          {% for status in statuses %}
+            <option value="{{ status }}" {% if status == "active" %}selected{% endif %}>{{ status }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button class="primary" type="submit">创建</button>
+    </form>
+  {% endif %}
+
+  {% if has_permission('account.permission.update') %}
+    <form class="panel" method="post" action="{{ url_for('update_role_permissions') }}">
+      <h2>角色权限</h2>
+      {% for role in ["admin", "user"] %}
+        <fieldset class="permission-group">
+          <legend>{{ role }}</legend>
+          {% for permission, label in permissions.items() %}
+            <label class="check">
+              <input
+                type="checkbox"
+                name="{{ role }}_permissions"
+                value="{{ permission }}"
+                {% if permission in role_permissions[role] %}checked{% endif %}
+              >
+              {{ permission }}
+            </label>
+          {% endfor %}
+        </fieldset>
+      {% endfor %}
+      <button class="primary" type="submit">保存权限</button>
+    </form>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>所有账户</h2>
+  <table>
+    <thead>
+      <tr><th>用户名</th><th>角色</th><th>Status</th><th>员工</th><th>创建时间</th><th>操作</th></tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+        <tr>
+          <td>{{ user.username }}</td>
+          <td>
+            {% if has_permission('account.role.update') %}
+              <form class="inline-form" method="post" action="{{ url_for('update_account_role', user_id=user.id) }}">
+                <select name="role" onchange="this.form.submit()">
+                  {% for role in roles %}
+                    <option value="{{ role }}" {% if user.role == role %}selected{% endif %}>{{ role }}</option>
+                  {% endfor %}
+                </select>
+              </form>
+            {% else %}
+              {{ user.role }}
+            {% endif %}
+          </td>
+          <td>
+            <form class="inline-form" method="post" action="{{ url_for('update_account_status', user_id=user.id) }}">
+              <select name="status" onchange="this.form.submit()">
+                {% for status in statuses %}
+                  <option value="{{ status }}" {% if user.status == status %}selected{% endif %}>{{ status }}</option>
+                {% endfor %}
+              </select>
+            </form>
+          </td>
+          <td>
+            {% if user.employee %}
+              {{ user.employee.name }} #{{ user.employee.employee_no }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>{{ user.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+          <td>
+            {% if has_permission('account.delete') %}
+              <form class="inline-form" method="post" action="{{ url_for('delete_account', user_id=user.id) }}" onsubmit="return confirm('Delete this account?');">
+                <button class="danger" type="submit">删除</button>
+              </form>
+            {% endif %}
+            {% if user.employee and has_permission('account.employee.link.manage') %}
+              <form class="inline-form" method="post" action="{{ url_for('unlink_account_employee', user_id=user.id) }}" onsubmit="return confirm('Unlink this employee?');">
+                <button class="secondary" type="submit">解除员工关联</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6">没有账户。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

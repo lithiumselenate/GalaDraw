@@ -7,6 +7,13 @@
     <h1>员工</h1>
   </div>
   <div class="actions">
+    <form
+      method="post"
+      action="{{ url_for('sync_employee_eligibility_from_checkins') }}"
+      onsubmit="return confirm('确认按今日签到同步所有员工的参与资格？已签到员工将可参与，未签到员工将不可参与。');"
+    >
+      <button class="primary" type="submit">按今日签到同步参与资格</button>
+    </form>
     <form method="post" action="{{ url_for('enable_all_employees') }}">
       <button class="secondary" type="submit">全部设为可参与</button>
     </form>

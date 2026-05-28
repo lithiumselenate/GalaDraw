@@ -207,6 +207,33 @@ nav a:hover {
   gap: 12px;
 }
 
+.inline-form {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.permission-group {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.permission-group legend {
+  padding: 0 6px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .page-title {
   display: flex;
   align-items: center;
@@ -265,6 +292,11 @@ button,
   font: inherit;
   font-weight: 800;
   cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 .primary {

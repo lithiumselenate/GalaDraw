@@ -18,13 +18,39 @@
         {% endif %}
       </a>
       <nav>
-        <a href="{{ url_for('employees') }}">员工</a>
-        <a href="{{ url_for('prizes') }}">奖项</a>
-        <a href="{{ url_for('draw_page') }}">抽奖</a>
-        <a href="{{ url_for('results') }}">结果</a>
-        {% if session.get('admin_user') %}
+        {% if has_permission('dashboard.view') %}
+          <a href="{{ url_for('index') }}">概览</a>
+        {% endif %}
+        {% if has_permission('employee.view') %}
+          <a href="{{ url_for('employees') }}">员工配置</a>
+        {% endif %}
+        {% if has_permission('prize.view') %}
+          <a href="{{ url_for('prizes') }}">奖项管理</a>
+        {% endif %}
+        {% if has_permission('draw.execute') %}
+          <a href="{{ url_for('draw_page') }}">抽奖页面</a>
+        {% endif %}
+        {% if has_permission('draw.result.view') %}
+          <a href="{{ url_for('results') }}">抽奖结果</a>
+        {% endif %}
+        {% if has_permission('registration.review') %}
+          <a href="{{ url_for('registrations') }}">账户审核</a>
+        {% endif %}
+        {% if has_permission('account.disable') %}
+          <a href="{{ url_for('accounts') }}">账户管理</a>
+        {% endif %}
+        {% if has_permission('account.self.employee.request') %}
+          <a href="{{ url_for('account') }}">我的账户</a>
+        {% endif %}
+        {% if has_permission('account.employee.link.review') %}
+          <a href="{{ url_for('employee_link_requests') }}">员工信息关联</a>
+        {% endif %}
+        {% if has_permission('checkin.self') %}
+          <a href="{{ url_for('checkin') }}">签到</a>
+        {% endif %}
+        {% if current_user %}
           <form class="nav-logout" method="post" action="{{ url_for('logout') }}">
-            <button type="submit">退出</button>
+            <button type="submit">Logout</button>
           </form>
         {% endif %}
       </nav>

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-title">
+  <div>
+    <p class="eyebrow">Access</p>
+    <h1>Employee link review</h1>
+  </div>
+</div>
+
+<section class="panel">
+  <h2>Pending requests</h2>
+  <table>
+    <thead>
+      <tr><th>User</th><th>Employee</th><th>Department</th><th>Requested</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+      {% for request_item in pending_requests %}
+        <tr>
+          <td>{{ request_item.user.username }}</td>
+          <td>{{ request_item.employee.name }} #{{ request_item.employee.employee_no }}</td>
+          <td>{{ request_item.employee.department }}</td>
+          <td>{{ request_item.requested_at.strftime("%Y-%m-%d %H:%M") }}</td>
+          <td>
+            <div class="table-actions">
+              <form class="inline-form" method="post" action="{{ url_for('approve_employee_link', request_id=request_item.id) }}">
+                <button class="primary" type="submit">Approve</button>
+              </form>
+              <form class="inline-form" method="post" action="{{ url_for('reject_employee_link', request_id=request_item.id) }}">
+                <button class="danger" type="submit">Reject</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">No pending employee link requests.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>Recent requests</h2>
+  <table>
+    <thead>
+      <tr><th>User</th><th>Employee</th><th>Status</th><th>Requested</th><th>Reviewed by</th></tr>
+    </thead>
+    <tbody>
+      {% for request_item in recent_requests %}
+        <tr>
+          <td>{{ request_item.user.username }}</td>
+          <td>{{ request_item.employee.name }} #{{ request_item.employee.employee_no }}</td>
+          <td>{{ request_item.status }}</td>
+          <td>{{ request_item.requested_at.strftime("%Y-%m-%d %H:%M") }}</td>
+          <td>{{ request_item.reviewed_by.username if request_item.reviewed_by else "-" }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">No employee link requests.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

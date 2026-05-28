@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-title">
+  <div>
+    <p class="eyebrow">Profile</p>
+    <h1>Account</h1>
+  </div>
+</div>
+
+<section class="grid two">
+  <div class="panel">
+    <h2>{{ current_user.username }}</h2>
+    <p class="muted">Role: {{ current_user.role }} | Status: {{ current_user.status }}</p>
+    {% if current_user.employee %}
+      <table>
+        <tbody>
+          <tr><th>Employee no.</th><td>{{ current_user.employee.employee_no }}</td></tr>
+          <tr><th>Name</th><td>{{ current_user.employee.name }}</td></tr>
+          <tr><th>Department</th><td>{{ current_user.employee.department }}</td></tr>
+          <tr><th>Draw eligible</th><td>{{ "Yes" if current_user.employee.eligible else "No" }}</td></tr>
+        </tbody>
+      </table>
+    {% elif pending_request %}
+      <p class="muted">Binding request pending for {{ pending_request.employee.name }} #{{ pending_request.employee.employee_no }}.</p>
+    {% else %}
+      <p class="muted">No employee is linked to this account yet.</p>
+    {% endif %}
+  </div>
+
+  {% if not current_user.employee and not pending_request %}
+    <form class="panel" method="post" action="{{ url_for('request_employee_link') }}">
+      <h2>Request employee link</h2>
+      <label>Employee no.<input name="employee_no" required></label>
+      <label>Name<input name="name" placeholder="Optional but recommended"></label>
+      <button class="primary" type="submit">Submit for review</button>
+    </form>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Recent requests</h2>
+  <table>
+    <thead>
+      <tr><th>Employee</th><th>Status</th><th>Requested</th><th>Reviewed</th></tr>
+    </thead>
+    <tbody>
+      {% for request_item in recent_requests %}
+        <tr>
+          <td>{{ request_item.employee.name }} #{{ request_item.employee.employee_no }}</td>
+          <td>{{ request_item.status }}</td>
+          <td>{{ request_item.requested_at.strftime("%Y-%m-%d %H:%M") }}</td>
+          <td>
+            {% if request_item.reviewed_at %}
+              {{ request_item.reviewed_at.strftime("%Y-%m-%d %H:%M") }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4">No binding requests.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

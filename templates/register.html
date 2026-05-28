@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>登录 - BEE Lucky Draw</title>
+    <title>Register - BEE Lucky Draw</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   </head>
   <body class="login-page">
@@ -11,7 +11,7 @@
       <section class="login-panel">
         <div class="login-brand">
           <img src="{{ url_for('static', filename='bee-logo.png') }}" alt="BEE">
-          <span>Lucky Draw</span>
+          <span>Register</span>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -26,16 +26,16 @@
 
         <form method="post">
           <label>
-            用户名
+            Username
             <input name="username" autocomplete="username" required autofocus>
           </label>
           <label>
-            密码
-            <input name="password" type="password" autocomplete="current-password" required>
+            Password
+            <input name="password" type="password" autocomplete="new-password" minlength="8" required>
           </label>
-          <button class="primary" type="submit">登录</button>
+          <button class="primary" type="submit">Submit registration</button>
         </form>
-        <a class="secondary action" href="{{ url_for('register') }}">Register</a>
+        <a class="secondary action" href="{{ url_for('login') }}">Back to login</a>
       </section>
     </main>
   </body>

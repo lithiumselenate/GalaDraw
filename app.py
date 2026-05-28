@@ -1,31 +1,88 @@
 import csv
-import hashlib
-import hmac
 import os
 import random
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
+from functools import wraps
 from io import StringIO
 
-from flask import Flask, Response, flash, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, Response, flash, g, jsonify, redirect, render_template, request, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import or_, text
+from werkzeug.security import check_password_hash, generate_password_hash
 
 
 db = SQLAlchemy()
 ADMIN_USERNAME = "superadmin"
-ADMIN_PASSWORD_SHA256 = "029b4fd16334ffa44e18d81e00de1e95e2467e66d00b4e043674861f6908234f"
-
-
-def password_matches(password):
-    password_hash = hashlib.sha256(password.encode("utf-8")).hexdigest()
-    return hmac.compare_digest(password_hash, ADMIN_PASSWORD_SHA256)
+ADMIN_INITIAL_PASSWORD = "Changeme123!"
+ROLES = ("superadmin", "admin", "user")
+STATUSES = ("pending", "active", "disabled")
+PERMISSIONS = {
+    "account.create": "Create accounts",
+    "account.delete": "Delete accounts",
+    "account.disable": "Disable accounts",
+    "account.role.update": "Change account roles",
+    "account.permission.update": "Change role permissions",
+    "account.self.employee.request": "Request employee binding",
+    "account.employee.link.review": "Review employee binding requests",
+    "account.employee.link.manage": "Manage employee bindings",
+    "registration.review": "Review registrations",
+    "dashboard.view": "View dashboard",
+    "employee.view": "View employees",
+    "employee.create": "Create employees",
+    "employee.import": "Import employees",
+    "employee.update": "Update employees",
+    "employee.reset": "Reset employees",
+    "prize.view": "View prizes",
+    "prize.create": "Create prizes",
+    "prize.update": "Update prizes",
+    "prize.disable": "Disable prizes",
+    "prize.delete": "Delete prizes",
+    "prize.reset": "Reset prizes",
+    "draw.configure": "Configure draw",
+    "draw.execute": "Run draw",
+    "draw.result.view": "View draw results",
+    "draw.result.export": "Export draw results",
+    "draw.result.reset": "Reset draw results",
+    "checkin.self": "Check in",
+    "checkin.view_all": "View all check-ins",
+    "checkin.manage": "Manage check-ins",
+}
+DEFAULT_ROLE_PERMISSIONS = {
+    "admin": {
+        "dashboard.view",
+        "registration.review",
+        "employee.view",
+        "employee.create",
+        "employee.import",
+        "employee.update",
+        "employee.reset",
+        "prize.view",
+        "prize.create",
+        "prize.update",
+        "prize.disable",
+        "prize.delete",
+        "prize.reset",
+        "draw.configure",
+        "draw.execute",
+        "draw.result.view",
+        "draw.result.export",
+        "draw.result.reset",
+        "checkin.view_all",
+        "checkin.manage",
+        "checkin.self",
+        "account.disable",
+        "account.employee.link.review",
+        "account.employee.link.manage",
+    },
+    "user": {"checkin.self", "account.self.employee.request"},
+}
 
 
 def safe_next_url(next_url):
     if not next_url or next_url.startswith("//"):
         return url_for("index")
-    if next_url.startswith("/") and not next_url.startswith("/login"):
+    if next_url.startswith("/") and not next_url.startswith(("/login", "/logout")):
         return next_url
     return url_for("index")
 
@@ -61,6 +118,71 @@ def set_bool_setting(name, enabled):
         setting = AppSetting(name=name)
         db.session.add(setting)
     setting.value = "1" if enabled else "0"
+
+
+def china_day_bounds_utc():
+    china_offset = timedelta(hours=8)
+    today_in_china = (datetime.utcnow() + china_offset).date()
+    start = datetime.combine(today_in_china, datetime.min.time()) - china_offset
+    return start, start + timedelta(days=1)
+
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(20), default="user", nullable=False)
+    status = db.Column(db.String(20), default="pending", nullable=False)
+    employee_id = db.Column(db.Integer, db.ForeignKey("employee.id"), unique=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    approved_at = db.Column(db.DateTime)
+    approved_by_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+
+    approved_by = db.relationship("User", remote_side=[id])
+    employee = db.relationship("Employee", foreign_keys=[employee_id])
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    @property
+    def is_active(self):
+        return self.status == "active"
+
+
+class RolePermission(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    role = db.Column(db.String(20), nullable=False)
+    permission = db.Column(db.String(80), nullable=False)
+    enabled = db.Column(db.Boolean, default=True, nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint("role", "permission", name="uq_role_permission"),
+    )
+
+
+class CheckIn(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    user = db.relationship("User")
+
+
+class EmployeeLinkRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    employee_id = db.Column(db.Integer, db.ForeignKey("employee.id"), nullable=False)
+    status = db.Column(db.String(20), default="pending", nullable=False)
+    requested_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    reviewed_at = db.Column(db.DateTime)
+    reviewed_by_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+
+    user = db.relationship("User", foreign_keys=[user_id])
+    employee = db.relationship("Employee")
+    reviewed_by = db.relationship("User", foreign_keys=[reviewed_by_id])
 
 
 class Employee(db.Model):
@@ -127,11 +249,130 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        migrate_user_employee_link_column()
+        seed_auth_data()
         migrate_draw_result_duplicate_winners()
         migrate_prize_active_column()
 
     register_routes(app)
     return app
+
+
+def migrate_user_employee_link_column():
+    if not db.engine.url.drivername.startswith("sqlite"):
+        return
+
+    columns = db.session.execute(text("PRAGMA table_info(user)")).mappings().all()
+    if not any(column["name"] == "employee_id" for column in columns):
+        db.session.execute(text("ALTER TABLE user ADD COLUMN employee_id INTEGER"))
+
+    indexes = db.session.execute(text("PRAGMA index_list(user)")).mappings().all()
+    if not any(index["name"] == "uq_user_employee_id" for index in indexes):
+        db.session.execute(
+            text("CREATE UNIQUE INDEX uq_user_employee_id ON user (employee_id)")
+        )
+    db.session.commit()
+
+
+def seed_auth_data():
+    superadmin = User.query.filter_by(username=ADMIN_USERNAME).first()
+    if superadmin is None:
+        superadmin = User(
+            username=ADMIN_USERNAME,
+            role="superadmin",
+            status="active",
+            approved_at=datetime.utcnow(),
+        )
+        superadmin.set_password(ADMIN_INITIAL_PASSWORD)
+        db.session.add(superadmin)
+    else:
+        superadmin.role = "superadmin"
+        superadmin.status = "active"
+
+    seed_marker = AppSetting.query.filter_by(
+        name="AUTH_DEFAULT_PERMISSIONS_SEEDED",
+    ).first()
+    if seed_marker is None:
+        for role, permissions in DEFAULT_ROLE_PERMISSIONS.items():
+            for permission in permissions:
+                existing = RolePermission.query.filter_by(
+                    role=role,
+                    permission=permission,
+                ).first()
+                if existing is None:
+                    db.session.add(
+                        RolePermission(
+                            role=role,
+                            permission=permission,
+                            enabled=True,
+                        )
+                    )
+        db.session.add(AppSetting(name="AUTH_DEFAULT_PERMISSIONS_SEEDED", value="1"))
+
+    db.session.commit()
+
+
+def role_permissions(role):
+    rows = RolePermission.query.filter_by(role=role, enabled=True).all()
+    return {row.permission for row in rows}
+
+
+def has_permission(permission):
+    user = getattr(g, "current_user", None)
+    if user is None or not user.is_active:
+        return False
+    if user.role == "superadmin":
+        return True
+    return permission in role_permissions(user.role)
+
+
+def has_any_permission(*permissions):
+    return any(has_permission(permission) for permission in permissions)
+
+
+def require_permission(permission):
+    if has_permission(permission):
+        return None
+    flash("You do not have permission to access that page.", "error")
+    if getattr(g, "current_user", None) and has_permission("checkin.self"):
+        return redirect(url_for("checkin"))
+    return redirect(url_for("login"))
+
+
+def permission_required(permission):
+    def decorator(view):
+        @wraps(view)
+        def wrapped(*args, **kwargs):
+            denied = require_permission(permission)
+            if denied:
+                return denied
+            return view(*args, **kwargs)
+
+        return wrapped
+
+    return decorator
+
+
+def landing_url_for(user):
+    if user.role == "superadmin" or has_permission("dashboard.view"):
+        return url_for("index")
+    if has_permission("account.disable"):
+        return url_for("accounts")
+    if has_permission("registration.review"):
+        return url_for("registrations")
+    if has_permission("account.employee.link.review"):
+        return url_for("employee_link_requests")
+    if has_permission("draw.execute"):
+        return url_for("draw_page")
+    if has_permission("employee.view"):
+        return url_for("employees")
+    if has_permission("prize.view"):
+        return url_for("prizes")
+    if has_permission("draw.result.view"):
+        return url_for("results")
+    if has_permission("checkin.self"):
+        return url_for("checkin")
+    return url_for("no_access")
 
 
 def migrate_prize_active_column():
@@ -203,31 +444,67 @@ def migrate_draw_result_duplicate_winners():
 def register_routes(app):
     @app.before_request
     def require_login():
-        public_endpoints = {"login", "login_submit", "static"}
+        g.current_user = None
+        user_id = session.get("user_id")
+        if user_id:
+            g.current_user = User.query.get(user_id)
+
+        public_endpoints = {"login", "login_submit", "register", "register_submit", "static"}
         if request.endpoint in public_endpoints:
             return None
-        if session.get("admin_user") == ADMIN_USERNAME:
+        if g.current_user and g.current_user.is_active:
             return None
         return redirect(url_for("login", next=request.full_path))
 
     @app.get("/login")
     def login():
-        if session.get("admin_user") == ADMIN_USERNAME:
-            return redirect(url_for("index"))
+        if g.current_user and g.current_user.is_active:
+            return redirect(landing_url_for(g.current_user))
         return render_template("login.html")
+
+    @app.get("/register")
+    def register():
+        if g.current_user and g.current_user.is_active:
+            return redirect(landing_url_for(g.current_user))
+        return render_template("register.html")
+
+    @app.post("/register")
+    def register_submit():
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        if not username or not password:
+            flash("Please enter a username and password.", "error")
+            return redirect(url_for("register"))
+        if len(password) < 8:
+            flash("Password must be at least 8 characters.", "error")
+            return redirect(url_for("register"))
+        if User.query.filter_by(username=username).first():
+            flash("That username is already registered.", "error")
+            return redirect(url_for("register"))
+
+        user = User(username=username, role="user", status="pending")
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        flash("Registration submitted. Please wait for approval.", "success")
+        return redirect(url_for("login"))
 
     @app.post("/login")
     def login_submit():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         next_url = safe_next_url(request.args.get("next"))
-        if username == ADMIN_USERNAME and password_matches(password):
+        user = User.query.filter_by(username=username).first()
+        if user and user.is_active and user.check_password(password):
             session.clear()
-            session["admin_user"] = ADMIN_USERNAME
+            session["user_id"] = user.id
+            g.current_user = user
             flash("登录成功。", "success")
+            if next_url == url_for("index") and not has_permission("dashboard.view"):
+                next_url = landing_url_for(user)
             return redirect(next_url)
 
-        flash("用户名或密码不正确。", "error")
+        flash("用户名或密码不正确，或账户尚未启用。", "error")
         return redirect(url_for("login", next=next_url))
 
     @app.post("/logout")
@@ -236,7 +513,369 @@ def register_routes(app):
         flash("已退出登录。", "success")
         return redirect(url_for("login"))
 
+    @app.get("/no-access")
+    def no_access():
+        return render_template("no_access.html")
+
+    @app.context_processor
+    def inject_auth_context():
+        return {
+            "current_user": getattr(g, "current_user", None),
+            "has_permission": has_permission,
+            "permissions": PERMISSIONS,
+            "roles": ROLES,
+        }
+
+    @app.get("/account")
+    @permission_required("account.self.employee.request")
+    def account():
+        pending_request = (
+            EmployeeLinkRequest.query.filter_by(
+                user_id=g.current_user.id,
+                status="pending",
+            )
+            .order_by(EmployeeLinkRequest.requested_at.desc())
+            .first()
+        )
+        recent_requests = (
+            EmployeeLinkRequest.query.filter_by(user_id=g.current_user.id)
+            .order_by(EmployeeLinkRequest.requested_at.desc())
+            .limit(5)
+            .all()
+        )
+        return render_template(
+            "account.html",
+            pending_request=pending_request,
+            recent_requests=recent_requests,
+        )
+
+    @app.post("/account/employee-link")
+    @permission_required("account.self.employee.request")
+    def request_employee_link():
+        if g.current_user.employee_id:
+            flash("Your account is already linked to an employee.", "error")
+            return redirect(url_for("account"))
+
+        employee_no = request.form.get("employee_no", "").strip()
+        name = request.form.get("name", "").strip()
+        if not employee_no:
+            flash("Please enter your employee number.", "error")
+            return redirect(url_for("account"))
+
+        employee = Employee.query.filter_by(employee_no=employee_no).first()
+        if employee is None or (name and employee.name.strip() != name):
+            flash("No matching employee was found.", "error")
+            return redirect(url_for("account"))
+        if User.query.filter_by(employee_id=employee.id).first():
+            flash("That employee is already linked to another account.", "error")
+            return redirect(url_for("account"))
+        pending_request = EmployeeLinkRequest.query.filter_by(
+            user_id=g.current_user.id,
+            status="pending",
+        ).first()
+        if pending_request:
+            flash("You already have a pending binding request.", "error")
+            return redirect(url_for("account"))
+
+        db.session.add(
+            EmployeeLinkRequest(
+                user_id=g.current_user.id,
+                employee_id=employee.id,
+                status="pending",
+            )
+        )
+        db.session.commit()
+        flash("Employee binding request submitted for review.", "success")
+        return redirect(url_for("account"))
+
+    @app.get("/employee-links")
+    @permission_required("account.employee.link.review")
+    def employee_link_requests():
+        pending_requests = (
+            EmployeeLinkRequest.query.filter_by(status="pending")
+            .order_by(EmployeeLinkRequest.requested_at)
+            .all()
+        )
+        recent_requests = (
+            EmployeeLinkRequest.query.order_by(EmployeeLinkRequest.requested_at.desc())
+            .limit(20)
+            .all()
+        )
+        return render_template(
+            "employee_links.html",
+            pending_requests=pending_requests,
+            recent_requests=recent_requests,
+        )
+
+    @app.post("/employee-links/<int:request_id>/approve")
+    @permission_required("account.employee.link.review")
+    def approve_employee_link(request_id):
+        link_request = EmployeeLinkRequest.query.get_or_404(request_id)
+        if link_request.status != "pending":
+            flash("This request has already been reviewed.", "error")
+            return redirect(url_for("employee_link_requests"))
+        if link_request.user.employee_id:
+            link_request.status = "rejected"
+            link_request.reviewed_at = datetime.utcnow()
+            link_request.reviewed_by_id = g.current_user.id
+            db.session.commit()
+            flash("The user is already linked to an employee.", "error")
+            return redirect(url_for("employee_link_requests"))
+        if User.query.filter_by(employee_id=link_request.employee_id).first():
+            link_request.status = "rejected"
+            link_request.reviewed_at = datetime.utcnow()
+            link_request.reviewed_by_id = g.current_user.id
+            db.session.commit()
+            flash("The employee is already linked to another account.", "error")
+            return redirect(url_for("employee_link_requests"))
+
+        link_request.user.employee_id = link_request.employee_id
+        link_request.status = "approved"
+        link_request.reviewed_at = datetime.utcnow()
+        link_request.reviewed_by_id = g.current_user.id
+        db.session.commit()
+        flash("Employee binding approved.", "success")
+        return redirect(url_for("employee_link_requests"))
+
+    @app.post("/employee-links/<int:request_id>/reject")
+    @permission_required("account.employee.link.review")
+    def reject_employee_link(request_id):
+        link_request = EmployeeLinkRequest.query.get_or_404(request_id)
+        if link_request.status != "pending":
+            flash("This request has already been reviewed.", "error")
+            return redirect(url_for("employee_link_requests"))
+        link_request.status = "rejected"
+        link_request.reviewed_at = datetime.utcnow()
+        link_request.reviewed_by_id = g.current_user.id
+        db.session.commit()
+        flash("Employee binding rejected.", "success")
+        return redirect(url_for("employee_link_requests"))
+
+    @app.get("/accounts")
+    @permission_required("account.disable")
+    def accounts():
+        query = User.query
+        if g.current_user.role != "superadmin":
+            query = query.filter_by(role="user")
+        users = query.order_by(User.created_at.desc()).all()
+        role_permissions_map = {
+            role: role_permissions(role) if role != "superadmin" else set(PERMISSIONS)
+            for role in ROLES
+        }
+        return render_template(
+            "accounts.html",
+            users=users,
+            role_permissions=role_permissions_map,
+            statuses=STATUSES,
+        )
+
+    @app.post("/accounts")
+    @permission_required("account.create")
+    def create_account():
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        role = request.form.get("role", "user")
+        status = request.form.get("status", "active")
+        if role not in ROLES or status not in STATUSES:
+            flash("Invalid role or status.", "error")
+            return redirect(url_for("accounts"))
+        if not username or not password:
+            flash("Please enter a username and password.", "error")
+            return redirect(url_for("accounts"))
+        if User.query.filter_by(username=username).first():
+            flash("That username already exists.", "error")
+            return redirect(url_for("accounts"))
+
+        user = User(username=username, role=role, status=status)
+        if status == "active":
+            user.approved_at = datetime.utcnow()
+            user.approved_by_id = g.current_user.id
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        flash("Account created.", "success")
+        return redirect(url_for("accounts"))
+
+    @app.post("/accounts/<int:user_id>/role")
+    @permission_required("account.role.update")
+    def update_account_role(user_id):
+        user = User.query.get_or_404(user_id)
+        role = request.form.get("role", "user")
+        if role not in ROLES:
+            flash("Invalid role.", "error")
+            return redirect(url_for("accounts"))
+        if user.username == ADMIN_USERNAME and role != "superadmin":
+            flash("The built-in superadmin cannot be demoted.", "error")
+            return redirect(url_for("accounts"))
+        active_superadmins = User.query.filter_by(
+            role="superadmin",
+            status="active",
+        ).count()
+        if user.role == "superadmin" and role != "superadmin" and active_superadmins <= 1:
+            flash("At least one active superadmin is required.", "error")
+            return redirect(url_for("accounts"))
+        user.role = role
+        db.session.commit()
+        flash("Role updated.", "success")
+        return redirect(url_for("accounts"))
+
+    @app.post("/accounts/<int:user_id>/status")
+    @permission_required("account.disable")
+    def update_account_status(user_id):
+        user = User.query.get_or_404(user_id)
+        status = request.form.get("status", "active")
+        if status not in STATUSES:
+            flash("Invalid status.", "error")
+            return redirect(url_for("accounts"))
+        if g.current_user.role != "superadmin" and user.role != "user":
+            flash("Only a superadmin can change staff account status.", "error")
+            return redirect(url_for("accounts"))
+        if user.username == ADMIN_USERNAME and status != "active":
+            flash("The built-in superadmin cannot be disabled.", "error")
+            return redirect(url_for("accounts"))
+        active_superadmins = User.query.filter_by(
+            role="superadmin",
+            status="active",
+        ).count()
+        if user.role == "superadmin" and status != "active" and active_superadmins <= 1:
+            flash("At least one active superadmin is required.", "error")
+            return redirect(url_for("accounts"))
+        user.status = status
+        if status == "active" and user.approved_at is None:
+            user.approved_at = datetime.utcnow()
+            user.approved_by_id = g.current_user.id
+        db.session.commit()
+        flash("Account status updated.", "success")
+        return redirect(url_for("accounts"))
+
+    @app.post("/accounts/<int:user_id>/delete")
+    @permission_required("account.delete")
+    def delete_account(user_id):
+        user = User.query.get_or_404(user_id)
+        if user.username == ADMIN_USERNAME or user.id == g.current_user.id:
+            flash("This account cannot be deleted.", "error")
+            return redirect(url_for("accounts"))
+        active_superadmins = User.query.filter_by(
+            role="superadmin",
+            status="active",
+        ).count()
+        if user.role == "superadmin" and user.status == "active" and active_superadmins <= 1:
+            flash("At least one active superadmin is required.", "error")
+            return redirect(url_for("accounts"))
+        CheckIn.query.filter_by(user_id=user.id).delete()
+        EmployeeLinkRequest.query.filter_by(user_id=user.id).delete()
+        EmployeeLinkRequest.query.filter_by(reviewed_by_id=user.id).update(
+            {"reviewed_by_id": None},
+            synchronize_session=False,
+        )
+        User.query.filter_by(approved_by_id=user.id).update(
+            {"approved_by_id": None},
+            synchronize_session=False,
+        )
+        db.session.delete(user)
+        db.session.commit()
+        flash("Account deleted.", "success")
+        return redirect(url_for("accounts"))
+
+    @app.post("/accounts/<int:user_id>/employee/unlink")
+    @permission_required("account.employee.link.manage")
+    def unlink_account_employee(user_id):
+        user = User.query.get_or_404(user_id)
+        if g.current_user.role != "superadmin" and user.role != "user":
+            flash("Only a superadmin can unlink staff accounts.", "error")
+            return redirect(url_for("accounts"))
+        user.employee_id = None
+        db.session.commit()
+        flash("Employee link removed.", "success")
+        return redirect(url_for("accounts"))
+
+    @app.post("/accounts/permissions")
+    @permission_required("account.permission.update")
+    def update_role_permissions():
+        for role in ("admin", "user"):
+            selected = set(request.form.getlist(f"{role}_permissions"))
+            RolePermission.query.filter_by(role=role).delete()
+            for permission in selected:
+                if permission in PERMISSIONS:
+                    db.session.add(
+                        RolePermission(
+                            role=role,
+                            permission=permission,
+                            enabled=True,
+                        )
+                    )
+        db.session.commit()
+        flash("Role permissions updated.", "success")
+        return redirect(url_for("accounts"))
+
+    @app.get("/registrations")
+    @permission_required("registration.review")
+    def registrations():
+        pending_users = User.query.filter_by(status="pending").order_by(User.created_at).all()
+        return render_template("registrations.html", pending_users=pending_users)
+
+    @app.post("/registrations/<int:user_id>/approve")
+    @permission_required("registration.review")
+    def approve_registration(user_id):
+        user = User.query.get_or_404(user_id)
+        user.status = "active"
+        user.role = "user"
+        user.approved_at = datetime.utcnow()
+        user.approved_by_id = g.current_user.id
+        db.session.commit()
+        flash("Registration approved.", "success")
+        return redirect(url_for("registrations"))
+
+    @app.post("/registrations/<int:user_id>/reject")
+    @permission_required("registration.review")
+    def reject_registration(user_id):
+        user = User.query.get_or_404(user_id)
+        if user.username == ADMIN_USERNAME:
+            flash("The built-in superadmin cannot be rejected.", "error")
+            return redirect(url_for("registrations"))
+        user.status = "disabled"
+        db.session.commit()
+        flash("Registration rejected.", "success")
+        return redirect(url_for("registrations"))
+
+    @app.get("/checkin")
+    @permission_required("checkin.self")
+    def checkin():
+        checkins = (
+            CheckIn.query.filter_by(user_id=g.current_user.id)
+            .order_by(CheckIn.created_at.desc())
+            .limit(10)
+            .all()
+        )
+        today_start, tomorrow_start = china_day_bounds_utc()
+        checked_in_today = any(
+            today_start <= item.created_at < tomorrow_start for item in checkins
+        )
+        return render_template(
+            "checkin.html",
+            checkins=checkins,
+            checked_in_today=checked_in_today,
+        )
+
+    @app.post("/checkin")
+    @permission_required("checkin.self")
+    def submit_checkin():
+        today_start, tomorrow_start = china_day_bounds_utc()
+        existing = (
+            CheckIn.query.filter_by(user_id=g.current_user.id)
+            .order_by(CheckIn.created_at.desc())
+            .first()
+        )
+        if existing and today_start <= existing.created_at < tomorrow_start:
+            flash("You have already checked in today.", "success")
+            return redirect(url_for("checkin"))
+        db.session.add(CheckIn(user_id=g.current_user.id))
+        db.session.commit()
+        flash("Check-in recorded.", "success")
+        return redirect(url_for("checkin"))
+
     @app.get("/")
+    @permission_required("dashboard.view")
     def index():
         stats = {
             "employees": Employee.query.count(),
@@ -250,6 +889,7 @@ def register_routes(app):
         return render_template("index.html", stats=stats, recent_results=recent_results)
 
     @app.get("/employees")
+    @permission_required("employee.view")
     def employees():
         page = request.args.get("page", 1, type=int)
         search = request.args.get("q", "").strip()
@@ -275,6 +915,7 @@ def register_routes(app):
         )
 
     @app.post("/employees")
+    @permission_required("employee.create")
     def add_employee():
         employee_no = request.form.get("employee_no", "").strip()
         name = request.form.get("name", "").strip()
@@ -301,6 +942,7 @@ def register_routes(app):
         return redirect(url_for("employees"))
 
     @app.post("/employees/import")
+    @permission_required("employee.import")
     def import_employees():
         upload = request.files.get("file")
         if not upload:
@@ -336,6 +978,7 @@ def register_routes(app):
         return redirect(url_for("employees"))
 
     @app.post("/employees/<int:employee_id>/eligibility")
+    @permission_required("employee.update")
     def update_employee_eligibility(employee_id):
         employee = Employee.query.get_or_404(employee_id)
         employee.eligible = request.form.get("eligible") == "1"
@@ -347,6 +990,7 @@ def register_routes(app):
         return redirect(url_for("employees"))
 
     @app.post("/employees/enable-all")
+    @permission_required("employee.update")
     def enable_all_employees():
         updated = Employee.query.filter_by(eligible=False).update(
             {"eligible": True},
@@ -356,7 +1000,42 @@ def register_routes(app):
         flash(f"已将 {updated} 位员工设为可参与抽奖。", "success")
         return redirect(url_for("employees"))
 
+    @app.post("/employees/sync-eligibility-from-checkins")
+    @permission_required("employee.update")
+    def sync_employee_eligibility_from_checkins():
+        today_start, tomorrow_start = china_day_bounds_utc()
+        checked_in_employee_ids = {
+            employee_id
+            for (employee_id,) in (
+                db.session.query(User.employee_id)
+                .join(CheckIn, CheckIn.user_id == User.id)
+                .filter(
+                    User.status == "active",
+                    User.employee_id.isnot(None),
+                    CheckIn.created_at >= today_start,
+                    CheckIn.created_at < tomorrow_start,
+                )
+                .distinct()
+                .all()
+            )
+        }
+
+        Employee.query.update({"eligible": False}, synchronize_session=False)
+        enabled_count = 0
+        if checked_in_employee_ids:
+            enabled_count = Employee.query.filter(
+                Employee.id.in_(checked_in_employee_ids)
+            ).update({"eligible": True}, synchronize_session=False)
+        db.session.commit()
+        disabled_count = Employee.query.filter_by(eligible=False).count()
+        flash(
+            f"已按今日签到同步参与资格：{enabled_count} 位员工可参与，{disabled_count} 位员工不可参与。",
+            "success",
+        )
+        return redirect(url_for("employees"))
+
     @app.get("/prizes")
+    @permission_required("prize.view")
     def prizes():
         rows = Prize.query.order_by(Prize.level, Prize.id).all()
         return render_template(
@@ -366,6 +1045,7 @@ def register_routes(app):
         )
 
     @app.post("/prizes")
+    @permission_required("prize.create")
     def add_prize():
         name = request.form.get("name", "").strip()
         level = int(request.form.get("level", "1"))
@@ -386,6 +1066,7 @@ def register_routes(app):
         return redirect(url_for("prizes"))
 
     @app.post("/prizes/reset")
+    @permission_required("prize.reset")
     def reset_prizes():
         DrawResult.query.delete()
         DrawSession.query.delete()
@@ -395,6 +1076,7 @@ def register_routes(app):
         return redirect(url_for("prizes"))
 
     @app.post("/prizes/<int:prize_id>/remove")
+    @permission_required("prize.disable")
     def remove_prize(prize_id):
         prize = Prize.query.get_or_404(prize_id)
         prize.active = False
@@ -403,6 +1085,7 @@ def register_routes(app):
         return redirect(url_for("prizes"))
 
     @app.post("/prizes/<int:prize_id>/restore")
+    @permission_required("prize.update")
     def restore_prize(prize_id):
         prize = Prize.query.get_or_404(prize_id)
         prize.active = True
@@ -411,6 +1094,7 @@ def register_routes(app):
         return redirect(url_for("prizes"))
 
     @app.post("/prizes/<int:prize_id>/delete")
+    @permission_required("prize.delete")
     def delete_prize(prize_id):
         prize = Prize.query.get_or_404(prize_id)
         prize_name = prize.name
@@ -422,6 +1106,7 @@ def register_routes(app):
         return redirect(url_for("prizes"))
 
     @app.post("/settings/draw")
+    @permission_required("draw.configure")
     def update_draw_settings():
         roll_names = request.form.get("roll_names") == "1"
         auto_disable_winners = request.form.get("auto_disable_winners") == "1"
@@ -432,6 +1117,7 @@ def register_routes(app):
         return redirect(url_for("prizes"))
 
     @app.post("/employees/reset")
+    @permission_required("employee.reset")
     def reset_employees():
         confirmation = request.form.get("confirmation", "").strip()
         if confirmation != "清空员工":
@@ -440,12 +1126,15 @@ def register_routes(app):
 
         DrawResult.query.delete()
         DrawSession.query.delete()
+        EmployeeLinkRequest.query.delete()
+        User.query.update({"employee_id": None}, synchronize_session=False)
         Employee.query.delete()
         db.session.commit()
         flash("所有员工信息和抽奖结果已重置。", "success")
         return redirect(url_for("employees"))
 
     @app.get("/draw")
+    @permission_required("draw.execute")
     def draw_page():
         prizes = Prize.query.filter_by(active=True).order_by(Prize.level, Prize.id).all()
         candidates = (
@@ -471,6 +1160,7 @@ def register_routes(app):
         )
 
     @app.get("/draw/sessions/<int:session_id>")
+    @permission_required("draw.result.view")
     def draw_session_result(session_id):
         session = DrawSession.query.get_or_404(session_id)
         return render_template(
@@ -480,6 +1170,7 @@ def register_routes(app):
         )
 
     @app.post("/draw")
+    @permission_required("draw.execute")
     def draw():
         prize_id = int(request.form.get("prize_id", "0"))
         request_id = request.form.get("request_id") or str(uuid.uuid4())
@@ -558,11 +1249,13 @@ def register_routes(app):
         return draw_response(session)
 
     @app.get("/results")
+    @permission_required("draw.result.view")
     def results():
         rows = DrawResult.query.order_by(DrawResult.created_at.desc()).all()
         return render_template("results.html", results=rows)
 
     @app.get("/results/export.csv")
+    @permission_required("draw.result.export")
     def export_results():
         output = StringIO()
         writer = csv.writer(output)
@@ -584,6 +1277,7 @@ def register_routes(app):
         )
 
     @app.post("/reset-results")
+    @permission_required("draw.result.reset")
     def reset_results():
         DrawResult.query.delete()
         DrawSession.query.delete()
