@@ -1,16 +1,33 @@
 import csv
+import hashlib
+import hmac
 import os
 import random
 import uuid
 from datetime import datetime
 from io import StringIO
 
-from flask import Flask, Response, flash, jsonify, redirect, render_template, request, url_for
+from flask import Flask, Response, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import or_, text
 
 
 db = SQLAlchemy()
+ADMIN_USERNAME = "superadmin"
+ADMIN_PASSWORD_SHA256 = "029b4fd16334ffa44e18d81e00de1e95e2467e66d00b4e043674861f6908234f"
+
+
+def password_matches(password):
+    password_hash = hashlib.sha256(password.encode("utf-8")).hexdigest()
+    return hmac.compare_digest(password_hash, ADMIN_PASSWORD_SHA256)
+
+
+def safe_next_url(next_url):
+    if not next_url or next_url.startswith("//"):
+        return url_for("index")
+    if next_url.startswith("/") and not next_url.startswith("/login"):
+        return next_url
+    return url_for("index")
 
 
 def get_bool_setting(name, default=True):
@@ -184,6 +201,41 @@ def migrate_draw_result_duplicate_winners():
 
 
 def register_routes(app):
+    @app.before_request
+    def require_login():
+        public_endpoints = {"login", "login_submit", "static"}
+        if request.endpoint in public_endpoints:
+            return None
+        if session.get("admin_user") == ADMIN_USERNAME:
+            return None
+        return redirect(url_for("login", next=request.full_path))
+
+    @app.get("/login")
+    def login():
+        if session.get("admin_user") == ADMIN_USERNAME:
+            return redirect(url_for("index"))
+        return render_template("login.html")
+
+    @app.post("/login")
+    def login_submit():
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        next_url = safe_next_url(request.args.get("next"))
+        if username == ADMIN_USERNAME and password_matches(password):
+            session.clear()
+            session["admin_user"] = ADMIN_USERNAME
+            flash("登录成功。", "success")
+            return redirect(next_url)
+
+        flash("用户名或密码不正确。", "error")
+        return redirect(url_for("login", next=next_url))
+
+    @app.post("/logout")
+    def logout():
+        session.clear()
+        flash("已退出登录。", "success")
+        return redirect(url_for("login"))
+
     @app.get("/")
     def index():
         stats = {

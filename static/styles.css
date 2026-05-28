@@ -77,6 +77,24 @@ nav a:hover {
   color: var(--ink);
 }
 
+.nav-logout {
+  display: inline-flex;
+  gap: 0;
+}
+
+.nav-logout button {
+  min-height: auto;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.nav-logout button:hover {
+  background: #eef2f8;
+  color: var(--ink);
+}
+
 .shell {
   width: min(1120px, calc(100% - 32px));
   margin: 32px auto;
@@ -345,6 +363,43 @@ th {
 .message.success {
   background: #dcfae6;
   color: #05603a;
+}
+
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(135deg, rgba(180, 35, 24, 0.08), rgba(24, 90, 188, 0.08)),
+    var(--bg);
+}
+
+.login-shell {
+  width: min(420px, calc(100% - 32px));
+}
+
+.login-panel {
+  display: grid;
+  gap: 22px;
+  padding: 32px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 18px 50px rgba(24, 32, 47, 0.1);
+}
+
+.login-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.login-brand img {
+  width: auto;
+  height: 38px;
+  display: block;
 }
 
 .draw-stage {

@@ -22,6 +22,11 @@
         <a href="{{ url_for('prizes') }}">奖项</a>
         <a href="{{ url_for('draw_page') }}">抽奖</a>
         <a href="{{ url_for('results') }}">结果</a>
+        {% if session.get('admin_user') %}
+          <form class="nav-logout" method="post" action="{{ url_for('logout') }}">
+            <button type="submit">退出</button>
+          </form>
+        {% endif %}
       </nav>
     </header>
 
