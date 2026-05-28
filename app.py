@@ -527,7 +527,6 @@ def register_routes(app):
         }
 
     @app.get("/account")
-    @permission_required("account.self.employee.request")
     def account():
         pending_request = (
             EmployeeLinkRequest.query.filter_by(
@@ -548,6 +547,27 @@ def register_routes(app):
             pending_request=pending_request,
             recent_requests=recent_requests,
         )
+
+    @app.post("/account/password")
+    def change_account_password():
+        current_password = request.form.get("current_password", "")
+        new_password = request.form.get("new_password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if not g.current_user.check_password(current_password):
+            flash("Current password is incorrect.", "error")
+            return redirect(url_for("account"))
+        if len(new_password) < 8:
+            flash("New password must be at least 8 characters.", "error")
+            return redirect(url_for("account"))
+        if new_password != confirm_password:
+            flash("New password confirmation does not match.", "error")
+            return redirect(url_for("account"))
+
+        g.current_user.set_password(new_password)
+        db.session.commit()
+        flash("Password updated.", "success")
+        return redirect(url_for("account"))
 
     @app.post("/account/employee-link")
     @permission_required("account.self.employee.request")

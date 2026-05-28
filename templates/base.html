@@ -39,7 +39,7 @@
         {% if has_permission('account.disable') %}
           <a href="{{ url_for('accounts') }}">账户管理</a>
         {% endif %}
-        {% if has_permission('account.self.employee.request') %}
+        {% if current_user %}
           <a href="{{ url_for('account') }}">我的账户</a>
         {% endif %}
         {% if has_permission('account.employee.link.review') %}
