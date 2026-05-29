@@ -1,42 +1,37 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="{{ 'zh-CN' if language == 'zh' else 'en' }}">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>中奖结果 - BEE 幸运抽奖</title>
+    <title>{{ t("draw.result_title") }} - {{ t("app.name") }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   </head>
-  <body class="showtime result-mode {% if show_animation %}animate-winners{% endif %}">
+  <body class="showtime">
     <main class="showtime-stage">
       <div class="showtime-top">
-        <a class="backstage-link" href="{{ url_for('index') }}">返回后台</a>
+        <a class="backstage-link" href="{{ url_for('index') }}">{{ t("common.back_admin") }}</a>
         <div class="showtime-status">
-          <span>{{ session.prize.name }}</span>
-          <span>{{ session.results|length }} 位中奖者</span>
+          <span>{{ t("draw.winner_count").format(count=session.results|length) }}</span>
         </div>
       </div>
 
-      <section class="winner-show" aria-labelledby="winner-title">
-        <p class="showtime-kicker">恭喜中奖</p>
-        <h1 id="winner-title">{{ session.prize.name }}</h1>
-
-        <div class="winner-grid showtime-winners">
-          {% for result in session.results %}
-            <article class="winner-card reveal">
-              <span>#{{ result.employee.employee_no }}</span>
-              <strong>{{ result.employee.name }}</strong>
-              <em>{{ result.employee.department }}</em>
+      <section class="live-draw result-stage">
+        <p class="showtime-kicker">{{ t("draw.congrats") }}</p>
+        <h1>{{ session.prize.name }}</h1>
+        <div class="winner-list">
+          {% for winner in session.results %}
+            <article class="winner-card">
+              <span>{{ winner.employee_no }}</span>
+              <strong>{{ winner.name }}</strong>
+              <small>{{ winner.department }}</small>
             </article>
           {% endfor %}
         </div>
-
         <div class="showtime-actions">
-          <a class="showtime-secondary" href="{{ url_for('results') }}">查看结果</a>
-          <a class="showtime-button compact" href="{{ url_for('draw_page') }}">下一次抽奖</a>
+          <a class="showtime-secondary" href="{{ url_for('results') }}">{{ t("draw.view_results") }}</a>
+          <a class="showtime-button compact" href="{{ url_for('draw_page') }}">{{ t("draw.next") }}</a>
         </div>
       </section>
     </main>
-
-    <script src="{{ url_for('static', filename='draw.js') }}"></script>
   </body>
 </html>

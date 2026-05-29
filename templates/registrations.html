@@ -3,15 +3,15 @@
 {% block content %}
 <div class="page-title">
   <div>
-    <p class="eyebrow">访问</p>
-    <h1>账户审核</h1>
+    <p class="eyebrow">{{ t("registrations.eyebrow") }}</p>
+    <h1>{{ t("registrations.title") }}</h1>
   </div>
 </div>
 
 <section class="panel">
   <table>
     <thead>
-      <tr><th>用户名</th><th>申请时间</th><th>操作</th></tr>
+      <tr><th>{{ t("accounts.username") }}</th><th>{{ t("registrations.requested") }}</th><th>{{ t("common.actions") }}</th></tr>
     </thead>
     <tbody>
       {% for user in pending_users %}
@@ -21,16 +21,16 @@
           <td>
             <div class="table-actions">
               <form class="inline-form" method="post" action="{{ url_for('approve_registration', user_id=user.id) }}">
-                <button class="primary" type="submit">批准</button>
+                <button class="primary" type="submit">{{ t("registrations.approve") }}</button>
               </form>
               <form class="inline-form" method="post" action="{{ url_for('reject_registration', user_id=user.id) }}">
-                <button class="danger" type="submit">拒绝</button>
+                <button class="danger" type="submit">{{ t("registrations.reject") }}</button>
               </form>
             </div>
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="3">没有待审核的账户。</td></tr>
+        <tr><td colspan="3">{{ t("registrations.empty") }}</td></tr>
       {% endfor %}
     </tbody>
   </table>

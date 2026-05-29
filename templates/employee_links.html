@@ -3,16 +3,16 @@
 {% block content %}
 <div class="page-title">
   <div>
-    <p class="eyebrow">访问</p>
-    <h1>员工信息关联审核</h1>
+    <p class="eyebrow">{{ t("links.eyebrow") }}</p>
+    <h1>{{ t("links.title") }}</h1>
   </div>
 </div>
 
 <section class="panel">
-  <h2>待处理请求</h2>
+  <h2>{{ t("links.pending") }}</h2>
   <table>
     <thead>
-      <tr><th>用户</th><th>员工</th><th>部门</th><th>申请时间</th><th>操作</th></tr>
+      <tr><th>{{ t("links.user") }}</th><th>{{ t("links.employee") }}</th><th>{{ t("common.department") }}</th><th>{{ t("links.requested") }}</th><th>{{ t("common.actions") }}</th></tr>
     </thead>
     <tbody>
       {% for request_item in pending_requests %}
@@ -24,26 +24,26 @@
           <td>
             <div class="table-actions">
               <form class="inline-form" method="post" action="{{ url_for('approve_employee_link', request_id=request_item.id) }}">
-                <button class="primary" type="submit">批准</button>
+                <button class="primary" type="submit">{{ t("links.approve") }}</button>
               </form>
               <form class="inline-form" method="post" action="{{ url_for('reject_employee_link', request_id=request_item.id) }}">
-                <button class="danger" type="submit">拒绝</button>
+                <button class="danger" type="submit">{{ t("links.reject") }}</button>
               </form>
             </div>
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="5">没有待处理的员工关联请求。</td></tr>
+        <tr><td colspan="5">{{ t("links.no_pending") }}</td></tr>
       {% endfor %}
     </tbody>
   </table>
 </section>
 
 <section class="panel">
-  <h2>近期请求</h2>
+  <h2>{{ t("links.recent") }}</h2>
   <table>
     <thead>
-      <tr><th>用户</th><th>员工</th><th>状态</th><th>申请时间</th><th>审核人</th></tr>
+      <tr><th>{{ t("links.user") }}</th><th>{{ t("links.employee") }}</th><th>{{ t("common.status") }}</th><th>{{ t("links.requested") }}</th><th>{{ t("links.reviewer") }}</th></tr>
     </thead>
     <tbody>
       {% for request_item in recent_requests %}
@@ -55,7 +55,7 @@
           <td>{{ request_item.reviewed_by.username if request_item.reviewed_by else "-" }}</td>
         </tr>
       {% else %}
-        <tr><td colspan="5">没有员工关联请求。</td></tr>
+        <tr><td colspan="5">{{ t("links.empty") }}</td></tr>
       {% endfor %}
     </tbody>
   </table>

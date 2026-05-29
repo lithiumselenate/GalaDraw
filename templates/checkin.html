@@ -3,37 +3,37 @@
 {% block content %}
 <div class="page-title">
   <div>
-    <p class="eyebrow">出席</p>
-    <h1>签到</h1>
+    <p class="eyebrow">{{ t("checkin.eyebrow") }}</p>
+    <h1>{{ t("checkin.title") }}</h1>
   </div>
 </div>
 
 <section class="panel">
   <h2>{{ current_user.username }}</h2>
-  <p class="muted">你的角色：{{ role_labels.get(current_user.role, current_user.role) }} | 状态：{{ status_labels.get(current_user.status, current_user.status) }}</p>
+  <p class="muted">{{ t("account.role_status").format(role=role_labels.get(current_user.role, current_user.role), status=status_labels.get(current_user.status, current_user.status)) }}</p>
   {% if current_user.employee %}
-    <p class="muted">员工：{{ current_user.employee.name }} #{{ current_user.employee.employee_no }}</p>
+    <p class="muted">{{ t("checkin.employee").format(employee=current_user.employee.name, number=current_user.employee.employee_no) }}</p>
   {% else %}
-    <p class="muted">没有已关联的员工信息。请提交关联请求。</p>
+    <p class="muted">{{ t("checkin.no_employee") }}</p>
   {% endif %}
   <form method="post" action="{{ url_for('submit_checkin') }}">
     <button class="primary large" type="submit" {% if checked_in_today %}disabled{% endif %}>
-      {% if checked_in_today %}已签到{% else %}签到{% endif %}
+      {{ t("checkin.done") if checked_in_today else t("checkin.submit") }}
     </button>
   </form>
 </section>
 
 <section class="panel">
-  <h2>近期签到</h2>
+  <h2>{{ t("checkin.recent") }}</h2>
   <table>
     <thead>
-      <tr><th>签到时间</th></tr>
+      <tr><th>{{ t("checkin.time") }}</th></tr>
     </thead>
     <tbody>
       {% for item in checkins %}
         <tr><td>{{ item.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td></tr>
       {% else %}
-        <tr><td>暂无签到记录。</td></tr>
+        <tr><td>{{ t("checkin.empty") }}</td></tr>
       {% endfor %}
     </tbody>
   </table>

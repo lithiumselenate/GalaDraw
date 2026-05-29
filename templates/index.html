@@ -3,26 +3,26 @@
 {% block content %}
 <section class="hero">
   <div>
-    <p class="eyebrow">后台管理</p>
-    <h1>BEE 幸运抽奖</h1>
-    <p class="muted">管理员工、配置奖项、执行抽奖，并导出中奖结果。</p>
+    <p class="eyebrow">{{ t("dashboard.eyebrow") }}</p>
+    <h1>{{ t("dashboard.title") }}</h1>
+    <p class="muted">{{ t("dashboard.description") }}</p>
   </div>
-  <a class="primary action" href="{{ url_for('draw_page') }}">开始抽奖</a>
+  <a class="primary action" href="{{ url_for('draw_page') }}">{{ t("dashboard.start") }}</a>
 </section>
 
 <section class="stats">
-  <div><strong>{{ stats.employees }}</strong><span>员工</span></div>
-  <div><strong>{{ stats.eligible }}</strong><span>可参与</span></div>
-  <div><strong>{{ stats.prizes }}</strong><span>奖项</span></div>
-  <div><strong>{{ stats.winners }}</strong><span>已中奖</span></div>
+  <div><strong>{{ stats.employees }}</strong><span>{{ t("dashboard.stat.employees") }}</span></div>
+  <div><strong>{{ stats.eligible }}</strong><span>{{ t("dashboard.stat.eligible") }}</span></div>
+  <div><strong>{{ stats.prizes }}</strong><span>{{ t("dashboard.stat.prizes") }}</span></div>
+  <div><strong>{{ stats.winners }}</strong><span>{{ t("dashboard.stat.winners") }}</span></div>
 </section>
 
 <section class="panel">
-  <h2>最近中奖</h2>
+  <h2>{{ t("dashboard.recent") }}</h2>
   {% if recent_results %}
     <table>
       <thead>
-        <tr><th>奖项</th><th>员工</th><th>部门</th><th>时间</th></tr>
+        <tr><th>{{ t("results.prize") }}</th><th>{{ t("dashboard.stat.employees") }}</th><th>{{ t("common.department") }}</th><th>{{ t("common.time") }}</th></tr>
       </thead>
       <tbody>
         {% for result in recent_results %}
@@ -36,7 +36,7 @@
       </tbody>
     </table>
   {% else %}
-    <p class="muted">暂无中奖记录。</p>
+    <p class="muted">{{ t("dashboard.no_recent") }}</p>
   {% endif %}
 </section>
 {% endblock %}

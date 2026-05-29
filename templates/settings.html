@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-title">
+  <div>
+    <p class="eyebrow">{{ t("settings.eyebrow") }}</p>
+    <h1>{{ t("settings.title") }}</h1>
+  </div>
+</div>
+
+<section class="panel">
+  <h2>{{ t("settings.language.title") }}</h2>
+  <form method="post" action="{{ url_for('update_language') }}">
+    <label>
+      {{ t("settings.language.label") }}
+      <select name="language">
+        <option value="zh" {% if language == "zh" %}selected{% endif %}>{{ t("settings.language.zh") }}</option>
+        <option value="en" {% if language == "en" %}selected{% endif %}>{{ t("settings.language.en") }}</option>
+      </select>
+    </label>
+    <button class="primary" type="submit">{{ t("settings.language.save") }}</button>
+  </form>
+</section>
+{% endblock %}

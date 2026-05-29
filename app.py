@@ -13,10 +13,51 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 
 db = SQLAlchemy()
+AUTH_ENABLED = False
 ADMIN_USERNAME = "superadmin"
 ADMIN_INITIAL_PASSWORD = "Changeme123!"
 ROLES = ("superadmin", "admin", "user")
 STATUSES = ("pending", "active", "disabled")
+AUTH_DISABLED_PERMISSIONS = {
+    "account.create",
+    "account.delete",
+    "account.disable",
+    "account.role.update",
+    "account.permission.update",
+    "account.self.employee.request",
+    "account.employee.link.review",
+    "account.employee.link.manage",
+    "registration.review",
+    "checkin.self",
+    "checkin.view_all",
+    "checkin.manage",
+}
+AUTH_ONLY_ENDPOINTS = {
+    "login",
+    "login_submit",
+    "logout",
+    "register",
+    "register_submit",
+    "account",
+    "change_account_password",
+    "request_employee_link",
+    "accounts",
+    "create_account",
+    "update_account_role",
+    "update_account_status",
+    "delete_account",
+    "unlink_account_employee",
+    "update_role_permissions",
+    "registrations",
+    "approve_registration",
+    "reject_registration",
+    "employee_link_requests",
+    "approve_employee_link",
+    "reject_employee_link",
+    "checkin",
+    "submit_checkin",
+    "no_access",
+}
 PERMISSIONS = {
     "account.create": "创建账户",
     "account.delete": "删除账户",
@@ -48,6 +89,37 @@ PERMISSIONS = {
     "checkin.view_all": "查看所有签到",
     "checkin.manage": "管理签到",
 }
+PERMISSION_LABELS_EN = {
+    "account.create": "Create accounts",
+    "account.delete": "Delete accounts",
+    "account.disable": "Disable accounts",
+    "account.role.update": "Update account roles",
+    "account.permission.update": "Update role permissions",
+    "account.self.employee.request": "Request employee link",
+    "account.employee.link.review": "Review employee links",
+    "account.employee.link.manage": "Manage employee links",
+    "registration.review": "Review registrations",
+    "dashboard.view": "View dashboard",
+    "employee.view": "View employees",
+    "employee.create": "Create employees",
+    "employee.import": "Import employees",
+    "employee.update": "Update employees",
+    "employee.reset": "Reset employees",
+    "prize.view": "View prizes",
+    "prize.create": "Create prizes",
+    "prize.update": "Update prizes",
+    "prize.disable": "Disable prizes",
+    "prize.delete": "Delete prizes",
+    "prize.reset": "Reset prizes",
+    "draw.configure": "Configure draw",
+    "draw.execute": "Run draw",
+    "draw.result.view": "View draw results",
+    "draw.result.export": "Export draw results",
+    "draw.result.reset": "Reset draw results",
+    "checkin.self": "Self check-in",
+    "checkin.view_all": "View all check-ins",
+    "checkin.manage": "Manage check-ins",
+}
 ROLE_LABELS = {
     "superadmin": "超级管理员",
     "admin": "管理员",
@@ -63,6 +135,451 @@ REQUEST_STATUS_LABELS = {
     "approved": "已批准",
     "rejected": "已拒绝",
 }
+SUPPORTED_LANGUAGES = ("zh", "en")
+TRANSLATIONS = {
+    "zh": {
+        "app.name": "BEE 幸运抽奖",
+        "nav.dashboard": "概览",
+        "nav.employees": "员工配置",
+        "nav.prizes": "奖项管理",
+        "nav.draw": "抽奖页面",
+        "nav.results": "抽奖结果",
+        "nav.registrations": "账户审核",
+        "nav.accounts": "账户管理",
+        "nav.account": "我的账户",
+        "nav.employee_links": "员工信息关联",
+        "nav.checkin": "签到",
+        "nav.settings": "系统设置",
+        "nav.logout": "退出登录",
+        "settings.eyebrow": "后台",
+        "settings.title": "系统设置",
+        "settings.language.title": "语言设置",
+        "settings.language.label": "后台语言",
+        "settings.language.zh": "中文",
+        "settings.language.en": "English",
+        "settings.language.save": "保存语言设置",
+        "settings.language.updated": "语言设置已更新。",
+        "settings.language.invalid": "请选择有效的语言。",
+    },
+    "en": {
+        "app.name": "BEE Lucky Draw",
+        "nav.dashboard": "Dashboard",
+        "nav.employees": "Employees",
+        "nav.prizes": "Prizes",
+        "nav.draw": "Draw",
+        "nav.results": "Results",
+        "nav.registrations": "Registration Review",
+        "nav.accounts": "Accounts",
+        "nav.account": "My Account",
+        "nav.employee_links": "Employee Links",
+        "nav.checkin": "Check-in",
+        "nav.settings": "Settings",
+        "nav.logout": "Log out",
+        "settings.eyebrow": "Admin",
+        "settings.title": "Settings",
+        "settings.language.title": "Language",
+        "settings.language.label": "Admin language",
+        "settings.language.zh": "中文",
+        "settings.language.en": "English",
+        "settings.language.save": "Save language",
+        "settings.language.updated": "Language setting updated.",
+        "settings.language.invalid": "Please select a valid language.",
+    },
+}
+TRANSLATIONS["zh"].update(
+    {
+        "role.superadmin": "超级管理员",
+        "role.admin": "管理员",
+        "role.user": "普通用户",
+        "status.pending": "待审核",
+        "status.active": "已启用",
+        "status.disabled": "已禁用",
+        "request.pending": "待审核",
+        "request.approved": "已批准",
+        "request.rejected": "已拒绝",
+        "common.yes": "是",
+        "common.no": "否",
+        "common.enabled": "开启",
+        "common.disabled": "关闭",
+        "common.on": "已开启",
+        "common.off": "已关闭",
+        "common.actions": "操作",
+        "common.status": "状态",
+        "common.name": "姓名",
+        "common.department": "部门",
+        "common.time": "时间",
+        "common.search": "搜索",
+        "common.clear": "清除",
+        "common.previous": "上一页",
+        "common.next": "下一页",
+        "common.back_admin": "返回后台",
+        "dashboard.eyebrow": "后台管理",
+        "dashboard.title": "BEE 幸运抽奖",
+        "dashboard.description": "管理员工、配置奖项、执行抽奖，并导出中奖结果。",
+        "dashboard.start": "开始抽奖",
+        "dashboard.stat.employees": "员工",
+        "dashboard.stat.eligible": "可参与",
+        "dashboard.stat.prizes": "奖项",
+        "dashboard.stat.winners": "已中奖",
+        "dashboard.recent": "最近中奖",
+        "dashboard.no_recent": "暂无中奖记录。",
+        "employee.eyebrow": "参与人员",
+        "employee.title": "员工",
+        "employee.export": "导出员工列表",
+        "employee.sync": "按今日签到同步参与资格",
+        "employee.sync.confirm": "确认按今日签到同步所有员工的参与资格？已签到员工将可参与，未签到员工将不可参与。",
+        "employee.enable_all": "全部设为可参与",
+        "employee.add_title": "新增员工",
+        "employee.number": "员工编号",
+        "employee.eligible": "参与抽奖",
+        "employee.add": "新增",
+        "employee.import_title": "导入员工文件",
+        "employee.import_hint": "文件表头：员工编号、姓名、部门。",
+        "employee.import": "导入",
+        "employee.reset_title": "重置员工信息",
+        "employee.reset_hint": "删除所有员工记录，并清空已有抽奖结果。提交前请输入“清空员工”。",
+        "employee.reset_confirm": "确认重置所有员工信息并清空抽奖结果？",
+        "employee.confirm_text": "确认文本",
+        "employee.confirm_placeholder": "清空员工",
+        "employee.reset": "重置员工",
+        "employee.list": "员工列表",
+        "employee.search_label": "搜索员工姓名或编号",
+        "employee.search_placeholder": "输入姓名或员工编号",
+        "employee.number_short": "编号",
+        "employee.set_ineligible": "设为不可参与",
+        "employee.set_eligible": "设为可参与",
+        "employee.ineligible": "不可参与",
+        "employee.eligible_state": "可参与",
+        "employee.empty": "暂无员工。",
+        "employee.page_status": "第 {page} / {pages} 页，共 {total} 位员工",
+        "prize.eyebrow": "配置",
+        "prize.title": "奖项",
+        "prize.add_title": "新增奖项",
+        "prize.name": "奖项名称",
+        "prize.name_placeholder": "一等奖",
+        "prize.level": "奖项等级",
+        "prize.winner_count": "中奖人数",
+        "prize.add": "新增",
+        "prize.settings": "抽奖设置",
+        "prize.roll_names": "姓名滚动",
+        "prize.current": "当前为{state}。",
+        "prize.roll_off": "关闭滚动",
+        "prize.roll_on": "开启滚动",
+        "prize.auto_disable": "中奖后自动设为不可参与",
+        "prize.auto_disable_off": "关闭自动禁用",
+        "prize.auto_disable_on": "开启自动禁用",
+        "prize.reset_title": "重设抽奖项目",
+        "prize.reset_hint": "删除所有奖项，并清空已有抽奖结果。",
+        "prize.reset_confirm": "确认重设所有抽奖项目并清空抽奖结果？",
+        "prize.reset": "重设奖项",
+        "prize.list": "奖项列表",
+        "prize.active": "可抽取",
+        "prize.removed": "已移除",
+        "prize.remove": "移除奖项",
+        "prize.restore": "恢复奖项",
+        "prize.delete": "删除奖项",
+        "prize.delete_confirm": "确认删除该奖项及其关联抽奖结果？",
+        "prize.empty": "暂无奖项。",
+        "draw.title": "现场抽奖",
+        "draw.live_title": "幸运抽奖",
+        "draw.subtitle": "选择奖项。",
+        "draw.candidates": "可参与：{count}人",
+        "draw.prize_count": "{count} 个奖项",
+        "draw.roll_status": "姓名滚动：{state}",
+        "draw.prize": "奖项",
+        "draw.people": "人",
+        "draw.no_slots": "暂无可抽取名额",
+        "draw.placeholder": "即将抽出 {count} 位中奖者",
+        "draw.start": "开始抽奖",
+        "draw.no_prizes": "请先在后台创建至少一个奖项。",
+        "draw.no_candidates": "当前没有可参与抽奖的员工。",
+        "draw.result_title": "中奖结果",
+        "draw.winner_count": "{count} 位中奖者",
+        "draw.congrats": "恭喜中奖",
+        "draw.view_results": "查看结果",
+        "draw.next": "下一次抽奖",
+        "results.eyebrow": "记录",
+        "results.title": "抽奖结果",
+        "results.export": "导出结果文件",
+        "results.reset": "重置结果",
+        "results.prize": "奖项",
+        "results.empty": "暂无抽奖结果。",
+        "account.eyebrow": "个人资料",
+        "account.title": "我的账户",
+        "account.role_status": "角色：{role} | 状态：{status}",
+        "account.employee_number": "员工编号",
+        "account.draw_eligible": "抽奖资格",
+        "account.pending_link": "{employee} #{number} 的关联申请正在等待审核。",
+        "account.no_employee": "当前账户尚未关联员工信息。",
+        "account.link_title": "申请关联员工信息",
+        "account.name_placeholder": "建议填写",
+        "account.submit_review": "提交审核",
+        "account.password_title": "修改密码",
+        "account.current_password": "当前密码",
+        "account.new_password": "新密码",
+        "account.confirm_password": "确认新密码",
+        "account.update_password": "更新密码",
+        "account.recent_requests": "最近申请",
+        "account.request_employee": "员工",
+        "account.requested_at": "申请时间",
+        "account.reviewed_at": "审核时间",
+        "account.no_requests": "暂无关联申请。",
+        "accounts.eyebrow": "访问",
+        "accounts.title": "账户管理",
+        "accounts.create_title": "创建账户",
+        "accounts.username": "用户名",
+        "accounts.password": "密码",
+        "accounts.role": "角色",
+        "accounts.status": "状态",
+        "accounts.create": "创建",
+        "accounts.permissions": "角色权限",
+        "accounts.save_permissions": "保存权限",
+        "accounts.all": "所有账户",
+        "accounts.employee": "员工",
+        "accounts.created": "创建时间",
+        "accounts.delete": "删除",
+        "accounts.delete_confirm": "确认删除该账户？",
+        "accounts.unlink": "解除员工关联",
+        "accounts.unlink_confirm": "确认解除该员工关联？",
+        "accounts.empty": "没有账户。",
+        "checkin.eyebrow": "出席",
+        "checkin.title": "签到",
+        "checkin.employee": "员工：{employee} #{number}",
+        "checkin.no_employee": "没有已关联的员工信息。请提交关联请求。",
+        "checkin.done": "已签到",
+        "checkin.submit": "签到",
+        "checkin.recent": "近期签到",
+        "checkin.time": "签到时间",
+        "checkin.empty": "暂无签到记录。",
+        "links.eyebrow": "访问",
+        "links.title": "员工信息关联审核",
+        "links.pending": "待处理请求",
+        "links.user": "用户",
+        "links.employee": "员工",
+        "links.requested": "申请时间",
+        "links.approve": "批准",
+        "links.reject": "拒绝",
+        "links.no_pending": "没有待处理的员工关联请求。",
+        "links.recent": "近期请求",
+        "links.reviewer": "审核人",
+        "links.empty": "没有员工关联请求。",
+        "login.title": "登录 - BEE 幸运抽奖",
+        "login.brand": "幸运抽奖",
+        "login.username": "用户名",
+        "login.password": "密码",
+        "login.submit": "登录",
+        "login.register": "注册账户",
+        "register.title": "注册 - BEE 幸运抽奖",
+        "register.brand": "账户注册",
+        "register.submit": "提交注册申请",
+        "register.back": "返回登录",
+        "registrations.eyebrow": "访问",
+        "registrations.title": "账户审核",
+        "registrations.requested": "申请时间",
+        "registrations.approve": "批准",
+        "registrations.reject": "拒绝",
+        "registrations.empty": "没有待审核的账户。",
+        "no_access.title": "暂无权限",
+        "no_access.message": "你的账户已启用，但尚未分配可访问的权限。",
+    }
+)
+TRANSLATIONS["en"].update(
+    {
+        "role.superadmin": "Super Admin",
+        "role.admin": "Admin",
+        "role.user": "User",
+        "status.pending": "Pending",
+        "status.active": "Active",
+        "status.disabled": "Disabled",
+        "request.pending": "Pending",
+        "request.approved": "Approved",
+        "request.rejected": "Rejected",
+        "common.yes": "Yes",
+        "common.no": "No",
+        "common.enabled": "On",
+        "common.disabled": "Off",
+        "common.on": "On",
+        "common.off": "Off",
+        "common.actions": "Actions",
+        "common.status": "Status",
+        "common.name": "Name",
+        "common.department": "Department",
+        "common.time": "Time",
+        "common.search": "Search",
+        "common.clear": "Clear",
+        "common.previous": "Previous",
+        "common.next": "Next",
+        "common.back_admin": "Back to Admin",
+        "dashboard.eyebrow": "Admin",
+        "dashboard.title": "BEE Lucky Draw",
+        "dashboard.description": "Manage employees, configure prizes, run the draw, and export winner results.",
+        "dashboard.start": "Start Draw",
+        "dashboard.stat.employees": "Employees",
+        "dashboard.stat.eligible": "Eligible",
+        "dashboard.stat.prizes": "Prizes",
+        "dashboard.stat.winners": "Winners",
+        "dashboard.recent": "Recent Winners",
+        "dashboard.no_recent": "No winner records yet.",
+        "employee.eyebrow": "Participants",
+        "employee.title": "Employees",
+        "employee.export": "Export Employees",
+        "employee.sync": "Sync Eligibility from Today's Check-ins",
+        "employee.sync.confirm": "Sync all employees by today's check-ins? Checked-in employees will be eligible; others will be ineligible.",
+        "employee.enable_all": "Set All Eligible",
+        "employee.add_title": "Add Employee",
+        "employee.number": "Employee No.",
+        "employee.eligible": "Draw Eligible",
+        "employee.add": "Add",
+        "employee.import_title": "Import Employee File",
+        "employee.import_hint": "File headers: Employee No., Name, Department.",
+        "employee.import": "Import",
+        "employee.reset_title": "Reset Employees",
+        "employee.reset_hint": "Delete all employee records and clear existing draw results. Enter the confirmation text before submitting.",
+        "employee.reset_confirm": "Reset all employee information and clear draw results?",
+        "employee.confirm_text": "Confirmation text",
+        "employee.confirm_placeholder": "Clear employees",
+        "employee.reset": "Reset Employees",
+        "employee.list": "Employee List",
+        "employee.search_label": "Search by employee name or number",
+        "employee.search_placeholder": "Enter name or employee number",
+        "employee.number_short": "No.",
+        "employee.set_ineligible": "Set Ineligible",
+        "employee.set_eligible": "Set Eligible",
+        "employee.ineligible": "Ineligible",
+        "employee.eligible_state": "Eligible",
+        "employee.empty": "No employees.",
+        "employee.page_status": "Page {page} / {pages}, {total} employees",
+        "prize.eyebrow": "Configuration",
+        "prize.title": "Prizes",
+        "prize.add_title": "Add Prize",
+        "prize.name": "Prize Name",
+        "prize.name_placeholder": "First Prize",
+        "prize.level": "Prize Level",
+        "prize.winner_count": "Winner Count",
+        "prize.add": "Add",
+        "prize.settings": "Draw Settings",
+        "prize.roll_names": "Name Rolling",
+        "prize.current": "Currently {state}.",
+        "prize.roll_off": "Turn Rolling Off",
+        "prize.roll_on": "Turn Rolling On",
+        "prize.auto_disable": "Set winners ineligible automatically",
+        "prize.auto_disable_off": "Turn Auto-disable Off",
+        "prize.auto_disable_on": "Turn Auto-disable On",
+        "prize.reset_title": "Reset Prizes",
+        "prize.reset_hint": "Delete all prizes and clear existing draw results.",
+        "prize.reset_confirm": "Reset all prizes and clear draw results?",
+        "prize.reset": "Reset Prizes",
+        "prize.list": "Prize List",
+        "prize.active": "Drawable",
+        "prize.removed": "Removed",
+        "prize.remove": "Remove Prize",
+        "prize.restore": "Restore Prize",
+        "prize.delete": "Delete Prize",
+        "prize.delete_confirm": "Delete this prize and related draw results?",
+        "prize.empty": "No prizes.",
+        "draw.title": "Live Draw",
+        "draw.live_title": "Lucky Draw",
+        "draw.subtitle": "Select a prize.",
+        "draw.candidates": "Eligible: {count}",
+        "draw.prize_count": "{count} prizes",
+        "draw.roll_status": "Name rolling: {state}",
+        "draw.prize": "Prize",
+        "draw.people": "people",
+        "draw.no_slots": "No draw slots",
+        "draw.placeholder": "{count} winner(s) will be drawn",
+        "draw.start": "Start Draw",
+        "draw.no_prizes": "Create at least one prize in the admin area first.",
+        "draw.no_candidates": "There are no eligible employees.",
+        "draw.result_title": "Winner Results",
+        "draw.winner_count": "{count} winner(s)",
+        "draw.congrats": "Congratulations",
+        "draw.view_results": "View Results",
+        "draw.next": "Next Draw",
+        "results.eyebrow": "Records",
+        "results.title": "Draw Results",
+        "results.export": "Export Results",
+        "results.reset": "Reset Results",
+        "results.prize": "Prize",
+        "results.empty": "No draw results.",
+        "account.eyebrow": "Profile",
+        "account.title": "My Account",
+        "account.role_status": "Role: {role} | Status: {status}",
+        "account.employee_number": "Employee No.",
+        "account.draw_eligible": "Draw Eligibility",
+        "account.pending_link": "Binding request for {employee} #{number} is pending review.",
+        "account.no_employee": "No employee is linked to this account yet.",
+        "account.link_title": "Request Employee Link",
+        "account.name_placeholder": "Recommended",
+        "account.submit_review": "Submit for Review",
+        "account.password_title": "Change Password",
+        "account.current_password": "Current Password",
+        "account.new_password": "New Password",
+        "account.confirm_password": "Confirm New Password",
+        "account.update_password": "Update Password",
+        "account.recent_requests": "Recent Requests",
+        "account.request_employee": "Employee",
+        "account.requested_at": "Requested",
+        "account.reviewed_at": "Reviewed",
+        "account.no_requests": "No binding requests.",
+        "accounts.eyebrow": "Access",
+        "accounts.title": "Accounts",
+        "accounts.create_title": "Create Account",
+        "accounts.username": "Username",
+        "accounts.password": "Password",
+        "accounts.role": "Role",
+        "accounts.status": "Status",
+        "accounts.create": "Create",
+        "accounts.permissions": "Role Permissions",
+        "accounts.save_permissions": "Save Permissions",
+        "accounts.all": "All Accounts",
+        "accounts.employee": "Employee",
+        "accounts.created": "Created",
+        "accounts.delete": "Delete",
+        "accounts.delete_confirm": "Delete this account?",
+        "accounts.unlink": "Unlink Employee",
+        "accounts.unlink_confirm": "Unlink this employee?",
+        "accounts.empty": "No accounts.",
+        "checkin.eyebrow": "Attendance",
+        "checkin.title": "Check-in",
+        "checkin.employee": "Employee: {employee} #{number}",
+        "checkin.no_employee": "No employee is linked. Please submit a link request.",
+        "checkin.done": "Checked in",
+        "checkin.submit": "Check in",
+        "checkin.recent": "Recent Check-ins",
+        "checkin.time": "Check-in Time",
+        "checkin.empty": "No check-ins yet.",
+        "links.eyebrow": "Access",
+        "links.title": "Employee Link Review",
+        "links.pending": "Pending Requests",
+        "links.user": "User",
+        "links.employee": "Employee",
+        "links.requested": "Requested",
+        "links.approve": "Approve",
+        "links.reject": "Reject",
+        "links.no_pending": "No pending employee link requests.",
+        "links.recent": "Recent Requests",
+        "links.reviewer": "Reviewer",
+        "links.empty": "No employee link requests.",
+        "login.title": "Log in - BEE Lucky Draw",
+        "login.brand": "Lucky Draw",
+        "login.username": "Username",
+        "login.password": "Password",
+        "login.submit": "Log in",
+        "login.register": "Register Account",
+        "register.title": "Register - BEE Lucky Draw",
+        "register.brand": "Account Registration",
+        "register.submit": "Submit Registration",
+        "register.back": "Back to Login",
+        "registrations.eyebrow": "Access",
+        "registrations.title": "Registration Review",
+        "registrations.requested": "Requested",
+        "registrations.approve": "Approve",
+        "registrations.reject": "Reject",
+        "registrations.empty": "No pending accounts.",
+        "no_access.title": "No Access",
+        "no_access.message": "Your account is active, but no permissions are assigned yet.",
+    }
+)
 DEFAULT_ROLE_PERMISSIONS = {
     "admin": {
         "dashboard.view",
@@ -133,6 +650,27 @@ def set_bool_setting(name, enabled):
         setting = AppSetting(name=name)
         db.session.add(setting)
     setting.value = "1" if enabled else "0"
+
+
+def get_language():
+    setting = AppSetting.query.filter_by(name="APP_LANGUAGE").first()
+    if setting and setting.value in SUPPORTED_LANGUAGES:
+        return setting.value
+    return "zh"
+
+
+def set_language(language):
+    setting = AppSetting.query.filter_by(name="APP_LANGUAGE").first()
+    if setting is None:
+        setting = AppSetting(name="APP_LANGUAGE")
+        db.session.add(setting)
+    setting.value = language
+
+
+def translate(key):
+    language = getattr(g, "language", None) or get_language()
+    messages = TRANSLATIONS.get(language, TRANSLATIONS["zh"])
+    return messages.get(key, TRANSLATIONS["zh"].get(key, key))
 
 
 def china_day_bounds_utc():
@@ -333,6 +871,9 @@ def role_permissions(role):
 
 
 def has_permission(permission):
+    if not AUTH_ENABLED:
+        return permission not in AUTH_DISABLED_PERMISSIONS
+
     user = getattr(g, "current_user", None)
     if user is None or not user.is_active:
         return False
@@ -369,6 +910,8 @@ def permission_required(permission):
 
 
 def landing_url_for(user):
+    if not AUTH_ENABLED:
+        return url_for("index")
     if user.role == "superadmin" or has_permission("dashboard.view"):
         return url_for("index")
     if has_permission("account.disable"):
@@ -460,6 +1003,12 @@ def register_routes(app):
     @app.before_request
     def require_login():
         g.current_user = None
+        g.language = get_language()
+        if not AUTH_ENABLED:
+            if request.endpoint in AUTH_ONLY_ENDPOINTS:
+                return redirect(url_for("index"))
+            return None
+
         user_id = session.get("user_id")
         if user_id:
             g.current_user = User.query.get(user_id)
@@ -532,16 +1081,48 @@ def register_routes(app):
     def no_access():
         return render_template("no_access.html")
 
+    @app.get("/settings")
+    @permission_required("draw.configure")
+    def settings():
+        return render_template("settings.html")
+
+    @app.post("/settings/language")
+    @permission_required("draw.configure")
+    def update_language():
+        language = request.form.get("language", "zh")
+        if language not in SUPPORTED_LANGUAGES:
+            flash(translate("settings.language.invalid"), "error")
+            return redirect(url_for("settings"))
+        set_language(language)
+        db.session.commit()
+        g.language = language
+        flash(translate("settings.language.updated"), "success")
+        return redirect(url_for("settings"))
+
     @app.context_processor
     def inject_auth_context():
         return {
             "current_user": getattr(g, "current_user", None),
+            "auth_enabled": AUTH_ENABLED,
+            "language": getattr(g, "language", "zh"),
+            "supported_languages": SUPPORTED_LANGUAGES,
+            "t": translate,
             "has_permission": has_permission,
             "permissions": PERMISSIONS,
+            "permission_labels": (
+                PERMISSION_LABELS_EN
+                if getattr(g, "language", "zh") == "en"
+                else PERMISSIONS
+            ),
             "roles": ROLES,
-            "role_labels": ROLE_LABELS,
-            "status_labels": STATUS_LABELS,
-            "request_status_labels": REQUEST_STATUS_LABELS,
+            "role_labels": {role: translate(f"role.{role}") for role in ROLES},
+            "status_labels": {
+                status: translate(f"status.{status}") for status in STATUSES
+            },
+            "request_status_labels": {
+                status: translate(f"request.{status}")
+                for status in REQUEST_STATUS_LABELS
+            },
             "timedelta": timedelta,
         }
 
@@ -1023,6 +1604,31 @@ def register_routes(app):
         db.session.commit()
         flash(f"导入完成，新增 {added} 位员工。", "success")
         return redirect(url_for("employees"))
+
+    @app.get("/employees/export.csv")
+    @permission_required("employee.view")
+    def export_employees():
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["员工编号", "姓名", "部门", "可参与抽奖", "创建时间"])
+        for employee in Employee.query.order_by(
+            Employee.department,
+            Employee.employee_no,
+        ).all():
+            writer.writerow(
+                [
+                    employee.employee_no,
+                    employee.name,
+                    employee.department,
+                    "是" if employee.eligible else "否",
+                    employee.created_at.isoformat(),
+                ]
+            )
+        return Response(
+            output.getvalue(),
+            mimetype="text/csv",
+            headers={"Content-Disposition": "attachment; filename=employees.csv"},
+        )
 
     @app.post("/employees/<int:employee_id>/eligibility")
     @permission_required("employee.update")

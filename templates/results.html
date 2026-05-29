@@ -3,13 +3,13 @@
 {% block content %}
 <div class="page-title">
   <div>
-    <p class="eyebrow">记录</p>
-    <h1>抽奖结果</h1>
+    <p class="eyebrow">{{ t("results.eyebrow") }}</p>
+    <h1>{{ t("results.title") }}</h1>
   </div>
   <div class="actions">
-    <a class="secondary" href="{{ url_for('export_results') }}">导出结果文件</a>
+    <a class="secondary" href="{{ url_for('export_results') }}">{{ t("results.export") }}</a>
     <form method="post" action="{{ url_for('reset_results') }}">
-      <button class="danger" type="submit">重置结果</button>
+      <button class="danger" type="submit">{{ t("results.reset") }}</button>
     </form>
   </div>
 </div>
@@ -17,7 +17,7 @@
 <section class="panel">
   <table>
     <thead>
-      <tr><th>奖项</th><th>编号</th><th>姓名</th><th>部门</th><th>时间</th></tr>
+      <tr><th>{{ t("results.prize") }}</th><th>{{ t("employee.number_short") }}</th><th>{{ t("common.name") }}</th><th>{{ t("common.department") }}</th><th>{{ t("common.time") }}</th></tr>
     </thead>
     <tbody>
       {% for result in results %}
@@ -29,7 +29,7 @@
           <td>{{ (result.created_at + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S") }}</td>
         </tr>
       {% else %}
-        <tr><td colspan="5">暂无抽奖结果。</td></tr>
+        <tr><td colspan="5">{{ t("results.empty") }}</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -3,69 +3,70 @@
 {% block content %}
 <div class="page-title">
   <div>
-    <p class="eyebrow">参与人员</p>
-    <h1>员工</h1>
+    <p class="eyebrow">{{ t("employee.eyebrow") }}</p>
+    <h1>{{ t("employee.title") }}</h1>
   </div>
   <div class="actions">
+    <a class="secondary" href="{{ url_for('export_employees') }}">{{ t("employee.export") }}</a>
     <form
       method="post"
       action="{{ url_for('sync_employee_eligibility_from_checkins') }}"
-      onsubmit="return confirm('确认按今日签到同步所有员工的参与资格？已签到员工将可参与，未签到员工将不可参与。');"
+      onsubmit="return confirm('{{ t('employee.sync.confirm') }}');"
     >
-      <button class="primary" type="submit">按今日签到同步参与资格</button>
+      <button class="primary" type="submit">{{ t("employee.sync") }}</button>
     </form>
     <form method="post" action="{{ url_for('enable_all_employees') }}">
-      <button class="secondary" type="submit">全部设为可参与</button>
+      <button class="secondary" type="submit">{{ t("employee.enable_all") }}</button>
     </form>
   </div>
 </div>
 
 <section class="grid two">
   <form class="panel" method="post" action="{{ url_for('add_employee') }}">
-    <h2>新增员工</h2>
-    <label>员工编号<input name="employee_no" required></label>
-    <label>姓名<input name="name" required></label>
-    <label>部门<input name="department"></label>
-    <label class="check"><input type="checkbox" name="eligible" checked> 参与抽奖</label>
-    <button class="primary" type="submit">新增</button>
+    <h2>{{ t("employee.add_title") }}</h2>
+    <label>{{ t("employee.number") }}<input name="employee_no" required></label>
+    <label>{{ t("common.name") }}<input name="name" required></label>
+    <label>{{ t("common.department") }}<input name="department"></label>
+    <label class="check"><input type="checkbox" name="eligible" checked> {{ t("employee.eligible") }}</label>
+    <button class="primary" type="submit">{{ t("employee.add") }}</button>
   </form>
 
   <form class="panel" method="post" action="{{ url_for('import_employees') }}" enctype="multipart/form-data">
-    <h2>导入员工文件</h2>
-    <p class="muted">文件表头：员工编号、姓名、部门。</p>
+    <h2>{{ t("employee.import_title") }}</h2>
+    <p class="muted">{{ t("employee.import_hint") }}</p>
     <input type="file" name="file" accept=".csv" required>
-    <button class="secondary" type="submit">导入</button>
+    <button class="secondary" type="submit">{{ t("employee.import") }}</button>
   </form>
 </section>
 
 <section class="panel danger-zone">
   <div>
-    <h2>重置员工信息</h2>
-    <p class="muted">删除所有员工记录，并清空已有抽奖结果。提交前请输入“清空员工”。</p>
+    <h2>{{ t("employee.reset_title") }}</h2>
+    <p class="muted">{{ t("employee.reset_hint") }}</p>
   </div>
   <form
     class="confirm-reset-form"
     method="post"
     action="{{ url_for('reset_employees') }}"
-    onsubmit="return confirm('确认重置所有员工信息并清空抽奖结果？');"
+    onsubmit="return confirm('{{ t('employee.reset_confirm') }}');"
   >
-    <label>确认文本<input name="confirmation" placeholder="清空员工" autocomplete="off" required></label>
-    <button class="danger" type="submit">重置员工</button>
+    <label>{{ t("employee.confirm_text") }}<input name="confirmation" placeholder="{{ t('employee.confirm_placeholder') }}" autocomplete="off" required></label>
+    <button class="danger" type="submit">{{ t("employee.reset") }}</button>
   </form>
 </section>
 
 <section class="panel">
-  <h2>员工列表</h2>
+  <h2>{{ t("employee.list") }}</h2>
   <form class="search-form" method="get" action="{{ url_for('employees') }}">
-    <label>搜索员工姓名或编号<input name="q" value="{{ search }}" placeholder="输入姓名或员工编号"></label>
-    <button class="secondary" type="submit">搜索</button>
+    <label>{{ t("employee.search_label") }}<input name="q" value="{{ search }}" placeholder="{{ t('employee.search_placeholder') }}"></label>
+    <button class="secondary" type="submit">{{ t("common.search") }}</button>
     {% if search %}
-      <a class="secondary" href="{{ url_for('employees') }}">清除</a>
+      <a class="secondary" href="{{ url_for('employees') }}">{{ t("common.clear") }}</a>
     {% endif %}
   </form>
   <table>
     <thead>
-      <tr><th>编号</th><th>姓名</th><th>部门</th><th>参与抽奖</th><th>操作</th></tr>
+      <tr><th>{{ t("employee.number_short") }}</th><th>{{ t("common.name") }}</th><th>{{ t("common.department") }}</th><th>{{ t("employee.eligible") }}</th><th>{{ t("common.actions") }}</th></tr>
     </thead>
     <tbody>
       {% for employee in employees %}
@@ -73,36 +74,36 @@
           <td>{{ employee.employee_no }}</td>
           <td>{{ employee.name }}</td>
           <td>{{ employee.department }}</td>
-          <td>{{ "是" if employee.eligible else "否" }}</td>
+          <td>{{ t("common.yes") if employee.eligible else t("common.no") }}</td>
           <td>
             <form class="inline-form" method="post" action="{{ url_for('update_employee_eligibility', employee_id=employee.id) }}">
               {% if employee.eligible %}
-                <button class="secondary" name="eligible" value="0" type="submit">设为不可参与</button>
+                <button class="secondary" name="eligible" value="0" type="submit">{{ t("employee.set_ineligible") }}</button>
               {% else %}
-                <button class="primary" name="eligible" value="1" type="submit">设为可参与</button>
+                <button class="primary" name="eligible" value="1" type="submit">{{ t("employee.set_eligible") }}</button>
               {% endif %}
             </form>
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="5">暂无员工。</td></tr>
+        <tr><td colspan="5">{{ t("employee.empty") }}</td></tr>
       {% endfor %}
     </tbody>
   </table>
   {% if pagination.pages > 1 %}
     <div class="pagination">
       {% if pagination.has_prev %}
-        <a class="secondary" href="{{ url_for('employees', page=pagination.prev_num, q=search) }}">上一页</a>
+        <a class="secondary" href="{{ url_for('employees', page=pagination.prev_num, q=search) }}">{{ t("common.previous") }}</a>
       {% else %}
-        <span class="secondary disabled">上一页</span>
+        <span class="secondary disabled">{{ t("common.previous") }}</span>
       {% endif %}
 
-      <span class="page-status">第 {{ pagination.page }} / {{ pagination.pages }} 页，共 {{ pagination.total }} 位员工</span>
+      <span class="page-status">{{ t("employee.page_status").format(page=pagination.page, pages=pagination.pages, total=pagination.total) }}</span>
 
       {% if pagination.has_next %}
-        <a class="secondary" href="{{ url_for('employees', page=pagination.next_num, q=search) }}">下一页</a>
+        <a class="secondary" href="{{ url_for('employees', page=pagination.next_num, q=search) }}">{{ t("common.next") }}</a>
       {% else %}
-        <span class="secondary disabled">下一页</span>
+        <span class="secondary disabled">{{ t("common.next") }}</span>
       {% endif %}
     </div>
   {% endif %}

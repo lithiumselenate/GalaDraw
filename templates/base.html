@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>BEE 幸运抽奖</title>
+    <title>{{ t("app.name") }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   </head>
   <body>
@@ -12,45 +12,48 @@
       <a class="brand {% if use_logo_brand %}brand-with-logo{% endif %}" href="{{ url_for('index') }}">
         {% if use_logo_brand %}
           <img src="{{ url_for('static', filename='bee-logo.png') }}" alt="BEE">
-          <span>幸运抽奖</span>
+          <span>{{ t("app.name") }}</span>
         {% else %}
-          BEE 幸运抽奖
+          {{ t("app.name") }}
         {% endif %}
       </a>
       <nav>
         {% if has_permission('dashboard.view') %}
-          <a href="{{ url_for('index') }}">概览</a>
+          <a href="{{ url_for('index') }}">{{ t("nav.dashboard") }}</a>
         {% endif %}
         {% if has_permission('employee.view') %}
-          <a href="{{ url_for('employees') }}">员工配置</a>
+          <a href="{{ url_for('employees') }}">{{ t("nav.employees") }}</a>
         {% endif %}
         {% if has_permission('prize.view') %}
-          <a href="{{ url_for('prizes') }}">奖项管理</a>
+          <a href="{{ url_for('prizes') }}">{{ t("nav.prizes") }}</a>
         {% endif %}
         {% if has_permission('draw.execute') %}
-          <a href="{{ url_for('draw_page') }}">抽奖页面</a>
+          <a href="{{ url_for('draw_page') }}">{{ t("nav.draw") }}</a>
         {% endif %}
         {% if has_permission('draw.result.view') %}
-          <a href="{{ url_for('results') }}">抽奖结果</a>
+          <a href="{{ url_for('results') }}">{{ t("nav.results") }}</a>
+        {% endif %}
+        {% if has_permission('draw.configure') %}
+          <a href="{{ url_for('settings') }}">{{ t("nav.settings") }}</a>
         {% endif %}
         {% if has_permission('registration.review') %}
-          <a href="{{ url_for('registrations') }}">账户审核</a>
+          <a href="{{ url_for('registrations') }}">{{ t("nav.registrations") }}</a>
         {% endif %}
         {% if has_permission('account.disable') %}
-          <a href="{{ url_for('accounts') }}">账户管理</a>
+          <a href="{{ url_for('accounts') }}">{{ t("nav.accounts") }}</a>
         {% endif %}
-        {% if current_user %}
-          <a href="{{ url_for('account') }}">我的账户</a>
+        {% if auth_enabled and current_user %}
+          <a href="{{ url_for('account') }}">{{ t("nav.account") }}</a>
         {% endif %}
         {% if has_permission('account.employee.link.review') %}
-          <a href="{{ url_for('employee_link_requests') }}">员工信息关联</a>
+          <a href="{{ url_for('employee_link_requests') }}">{{ t("nav.employee_links") }}</a>
         {% endif %}
         {% if has_permission('checkin.self') %}
-          <a href="{{ url_for('checkin') }}">签到</a>
+          <a href="{{ url_for('checkin') }}">{{ t("nav.checkin") }}</a>
         {% endif %}
-        {% if current_user %}
+        {% if auth_enabled and current_user %}
           <form class="nav-logout" method="post" action="{{ url_for('logout') }}">
-            <button type="submit">退出登录</button>
+            <button type="submit">{{ t("nav.logout") }}</button>
           </form>
         {% endif %}
       </nav>

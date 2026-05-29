@@ -3,19 +3,19 @@
 {% block content %}
 <div class="page-title">
   <div>
-    <p class="eyebrow">访问</p>
-    <h1>账户管理</h1>
+    <p class="eyebrow">{{ t("accounts.eyebrow") }}</p>
+    <h1>{{ t("accounts.title") }}</h1>
   </div>
 </div>
 
 <section class="grid two">
   {% if has_permission('account.create') %}
     <form class="panel" method="post" action="{{ url_for('create_account') }}">
-      <h2>创建账户</h2>
-      <label>用户名<input name="username" required></label>
-      <label>密码<input name="password" type="password" minlength="8" required></label>
+      <h2>{{ t("accounts.create_title") }}</h2>
+      <label>{{ t("accounts.username") }}<input name="username" required></label>
+      <label>{{ t("accounts.password") }}<input name="password" type="password" minlength="8" required></label>
       <label>
-        角色
+        {{ t("accounts.role") }}
         <select name="role">
           {% for role in roles %}
             <option value="{{ role }}">{{ role_labels.get(role, role) }}</option>
@@ -23,20 +23,20 @@
         </select>
       </label>
       <label>
-        状态
+        {{ t("accounts.status") }}
         <select name="status">
           {% for status in statuses %}
             <option value="{{ status }}" {% if status == "active" %}selected{% endif %}>{{ status_labels.get(status, status) }}</option>
           {% endfor %}
         </select>
       </label>
-      <button class="primary" type="submit">创建</button>
+      <button class="primary" type="submit">{{ t("accounts.create") }}</button>
     </form>
   {% endif %}
 
   {% if has_permission('account.permission.update') %}
     <form class="panel" method="post" action="{{ url_for('update_role_permissions') }}">
-      <h2>角色权限</h2>
+      <h2>{{ t("accounts.permissions") }}</h2>
       {% for role in ["admin", "user"] %}
         <fieldset class="permission-group">
           <legend>{{ role_labels.get(role, role) }}</legend>
@@ -48,21 +48,21 @@
                 value="{{ permission }}"
                 {% if permission in role_permissions[role] %}checked{% endif %}
               >
-              {{ label }}
+              {{ permission_labels.get(permission, label) }}
             </label>
           {% endfor %}
         </fieldset>
       {% endfor %}
-      <button class="primary" type="submit">保存权限</button>
+      <button class="primary" type="submit">{{ t("accounts.save_permissions") }}</button>
     </form>
   {% endif %}
 </section>
 
 <section class="panel">
-  <h2>所有账户</h2>
+  <h2>{{ t("accounts.all") }}</h2>
   <table>
     <thead>
-      <tr><th>用户名</th><th>角色</th><th>状态</th><th>员工</th><th>创建时间</th><th>操作</th></tr>
+      <tr><th>{{ t("accounts.username") }}</th><th>{{ t("accounts.role") }}</th><th>{{ t("accounts.status") }}</th><th>{{ t("accounts.employee") }}</th><th>{{ t("accounts.created") }}</th><th>{{ t("common.actions") }}</th></tr>
     </thead>
     <tbody>
       {% for user in users %}
@@ -100,19 +100,19 @@
           <td>{{ user.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
           <td>
             {% if has_permission('account.delete') %}
-              <form class="inline-form" method="post" action="{{ url_for('delete_account', user_id=user.id) }}" onsubmit="return confirm('确认删除该账户？');">
-                <button class="danger" type="submit">删除</button>
+              <form class="inline-form" method="post" action="{{ url_for('delete_account', user_id=user.id) }}" onsubmit="return confirm('{{ t('accounts.delete_confirm') }}');">
+                <button class="danger" type="submit">{{ t("accounts.delete") }}</button>
               </form>
             {% endif %}
             {% if user.employee and has_permission('account.employee.link.manage') %}
-              <form class="inline-form" method="post" action="{{ url_for('unlink_account_employee', user_id=user.id) }}" onsubmit="return confirm('确认解除该员工关联？');">
-                <button class="secondary" type="submit">解除员工关联</button>
+              <form class="inline-form" method="post" action="{{ url_for('unlink_account_employee', user_id=user.id) }}" onsubmit="return confirm('{{ t('accounts.unlink_confirm') }}');">
+                <button class="secondary" type="submit">{{ t("accounts.unlink") }}</button>
               </form>
             {% endif %}
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="6">没有账户。</td></tr>
+        <tr><td colspan="6">{{ t("accounts.empty") }}</td></tr>
       {% endfor %}
     </tbody>
   </table>

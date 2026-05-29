@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="{{ 'zh-CN' if language == 'zh' else 'en' }}">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>注册 - BEE 幸运抽奖</title>
+    <title>{{ t("register.title") }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   </head>
   <body class="login-page">
@@ -11,7 +11,7 @@
       <section class="login-panel">
         <div class="login-brand">
           <img src="{{ url_for('static', filename='bee-logo.png') }}" alt="BEE">
-          <span>账户注册</span>
+          <span>{{ t("register.brand") }}</span>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -26,16 +26,16 @@
 
         <form method="post">
           <label>
-            用户名
+            {{ t("login.username") }}
             <input name="username" autocomplete="username" required autofocus>
           </label>
           <label>
-            密码
+            {{ t("login.password") }}
             <input name="password" type="password" autocomplete="new-password" minlength="8" required>
           </label>
-          <button class="primary" type="submit">提交注册申请</button>
+          <button class="primary" type="submit">{{ t("register.submit") }}</button>
         </form>
-        <a class="secondary action" href="{{ url_for('login') }}">返回登录</a>
+        <a class="secondary action" href="{{ url_for('login') }}">{{ t("register.back") }}</a>
       </section>
     </main>
   </body>
