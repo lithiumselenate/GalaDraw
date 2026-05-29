@@ -6,7 +6,7 @@
     <title>{{ t("draw.result_title") }} - {{ t("app.name") }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   </head>
-  <body class="showtime">
+  <body class="showtime {% if show_animation %}animate-winners{% endif %}">
     <main class="showtime-stage">
       <div class="showtime-top">
         <a class="backstage-link" href="{{ url_for('index') }}">{{ t("common.back_admin") }}</a>
@@ -18,13 +18,15 @@
       <section class="live-draw result-stage">
         <p class="showtime-kicker">{{ t("draw.congrats") }}</p>
         <h1>{{ session.prize.name }}</h1>
-        <div class="winner-list">
+        <div class="winner-grid showtime-winners">
           {% for winner in session.results %}
-            <article class="winner-card">
-              <span>{{ winner.employee_no }}</span>
-              <strong>{{ winner.name }}</strong>
-              <small>{{ winner.department }}</small>
+            <article class="winner-card{% if not show_animation %} show{% endif %}">
+              <span>{{ winner.employee.employee_no }}</span>
+              <strong>{{ winner.employee.name }}</strong>
+              <em>{{ winner.employee.department }}</em>
             </article>
+          {% else %}
+            <p class="showtime-note">{{ t("results.empty") }}</p>
           {% endfor %}
         </div>
         <div class="showtime-actions">
@@ -33,5 +35,6 @@
         </div>
       </section>
     </main>
+    <script src="{{ url_for('static', filename='draw.js') }}"></script>
   </body>
 </html>
