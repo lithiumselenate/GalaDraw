@@ -56,6 +56,7 @@ AUTH_ONLY_ENDPOINTS = {
     "reject_employee_link",
     "checkin",
     "submit_checkin",
+    "sync_employee_eligibility_from_checkins",
     "no_access",
 }
 PERMISSIONS = {
