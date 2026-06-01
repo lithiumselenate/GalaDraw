@@ -266,6 +266,32 @@ select {
   font: inherit;
 }
 
+.file-picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.file-picker input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.file-picker-name {
+  min-width: 0;
+  color: var(--muted);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .check {
   display: flex;
   align-items: center;
@@ -344,6 +370,19 @@ button:disabled {
   align-items: end;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.results-filter-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.filter-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .page-status {
@@ -526,6 +565,20 @@ th {
 
   .search-form {
     grid-template-columns: 1fr;
+  }
+
+  .results-filter-form {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-shortcuts {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .file-picker {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 

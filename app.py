@@ -236,6 +236,8 @@ TRANSLATIONS["zh"].update(
         "employee.add": "新增",
         "employee.import_title": "导入员工文件",
         "employee.import_hint": "文件表头：员工编号、姓名、部门。",
+        "employee.choose_csv": "选择 CSV 文件",
+        "employee.no_file_selected": "未选择文件",
         "employee.import": "导入",
         "employee.reset_title": "重置员工信息",
         "employee.reset_hint": "删除所有员工记录，并清空已有抽奖结果。提交前请输入“清空员工”。",
@@ -307,6 +309,16 @@ TRANSLATIONS["zh"].update(
         "results.reset": "重置结果",
         "results.prize": "奖项",
         "results.empty": "暂无抽奖结果。",
+        "results.filter_title": "按抽奖时间筛选",
+        "results.start_date": "开始日期",
+        "results.end_date": "结束日期",
+        "results.date_placeholder": "年/月/日",
+        "results.apply_filter": "应用筛选",
+        "results.today": "今天",
+        "results.this_year": "今年",
+        "results.all_time": "全部",
+        "results.invalid_date": "请输入有效的日期。",
+        "results.invalid_range": "开始日期不能晚于结束日期。",
         "account.eyebrow": "个人资料",
         "account.title": "我的账户",
         "account.role_status": "角色：{role} | 状态：{status}",
@@ -435,6 +447,8 @@ TRANSLATIONS["en"].update(
         "employee.add": "Add",
         "employee.import_title": "Import Employee File",
         "employee.import_hint": "File headers: Employee No., Name, Department.",
+        "employee.choose_csv": "Choose CSV",
+        "employee.no_file_selected": "No file selected",
         "employee.import": "Import",
         "employee.reset_title": "Reset Employees",
         "employee.reset_hint": "Delete all employee records and clear existing draw results. Enter \"Clear employees\" before submitting.",
@@ -506,6 +520,16 @@ TRANSLATIONS["en"].update(
         "results.reset": "Reset Results",
         "results.prize": "Prize",
         "results.empty": "No draw results.",
+        "results.filter_title": "Filter by draw time",
+        "results.start_date": "Start date",
+        "results.end_date": "End date",
+        "results.date_placeholder": "Y/M/D",
+        "results.apply_filter": "Apply Filter",
+        "results.today": "Today",
+        "results.this_year": "This Year",
+        "results.all_time": "All",
+        "results.invalid_date": "Enter a valid date.",
+        "results.invalid_range": "Start date cannot be later than end date.",
         "account.eyebrow": "Profile",
         "account.title": "My Account",
         "account.role_status": "Role: {role} | Status: {status}",
@@ -683,6 +707,79 @@ def china_day_bounds_utc():
     today_in_china = (datetime.utcnow() + china_offset).date()
     start = datetime.combine(today_in_china, datetime.min.time()) - china_offset
     return start, start + timedelta(days=1)
+
+
+def parse_date_filter(args):
+    china_offset = timedelta(hours=8)
+    start_text = args.get("start_date", "").strip()
+    end_text = args.get("end_date", "").strip()
+    start_date = None
+    end_date = None
+
+    try:
+        if start_text:
+            start_date = parse_filter_date(start_text)
+        if end_text:
+            end_date = parse_filter_date(end_text)
+    except ValueError:
+        return None, None, {"start_date": start_text, "end_date": end_text}, "invalid_date"
+
+    if start_date and end_date and start_date > end_date:
+        return None, None, {"start_date": start_text, "end_date": end_text}, "invalid_range"
+
+    start_utc = None
+    end_utc = None
+    if start_date:
+        start_utc = datetime.combine(start_date, datetime.min.time()) - china_offset
+    if end_date:
+        next_day = end_date + timedelta(days=1)
+        end_utc = datetime.combine(next_day, datetime.min.time()) - china_offset
+
+    return start_utc, end_utc, {"start_date": start_text, "end_date": end_text}, None
+
+
+def parse_filter_date(value):
+    for date_format in ("%Y-%m-%d", "%Y/%m/%d"):
+        try:
+            return datetime.strptime(value, date_format).date()
+        except ValueError:
+            pass
+    raise ValueError(value)
+
+
+def apply_result_date_filter(query, start_utc, end_utc):
+    if start_utc:
+        query = query.filter(DrawResult.created_at >= start_utc)
+    if end_utc:
+        query = query.filter(DrawResult.created_at < end_utc)
+    return query
+
+
+def result_export_filename(filters):
+    start_date = filters.get("start_date", "").replace("/", "-")
+    end_date = filters.get("end_date", "").replace("/", "-")
+    if start_date and end_date:
+        return f"draw_results_{start_date}_to_{end_date}.csv"
+    if start_date:
+        return f"draw_results_from_{start_date}.csv"
+    if end_date:
+        return f"draw_results_to_{end_date}.csv"
+    return "draw_results.csv"
+
+
+def result_filter_presets():
+    today = (datetime.utcnow() + timedelta(hours=8)).date()
+    year_start = today.replace(month=1, day=1)
+    return {
+        "today": {
+            "start_date": today.strftime("%Y/%m/%d"),
+            "end_date": today.strftime("%Y/%m/%d"),
+        },
+        "this_year": {
+            "start_date": year_start.strftime("%Y/%m/%d"),
+            "end_date": today.strftime("%Y/%m/%d"),
+        },
+    }
 
 
 class User(db.Model):
@@ -1909,16 +2006,32 @@ def register_routes(app):
     @app.get("/results")
     @permission_required("draw.result.view")
     def results():
-        rows = DrawResult.query.order_by(DrawResult.created_at.desc()).all()
-        return render_template("results.html", results=rows)
+        start_utc, end_utc, filters, error_key = parse_date_filter(request.args)
+        if error_key:
+            flash(translate(f"results.{error_key}"), "error")
+            filters = {"start_date": "", "end_date": ""}
+        query = apply_result_date_filter(DrawResult.query, start_utc, end_utc)
+        rows = query.order_by(DrawResult.created_at.desc()).all()
+        return render_template(
+            "results.html",
+            results=rows,
+            filters=filters,
+            presets=result_filter_presets(),
+        )
 
     @app.get("/results/export.csv")
     @permission_required("draw.result.export")
     def export_results():
+        start_utc, end_utc, filters, error_key = parse_date_filter(request.args)
+        if error_key:
+            flash(translate(f"results.{error_key}"), "error")
+            return redirect(url_for("results"))
+
         output = StringIO()
         writer = csv.writer(output)
         writer.writerow(["奖项", "员工编号", "姓名", "部门", "抽奖时间"])
-        for result in DrawResult.query.order_by(DrawResult.created_at).all():
+        query = apply_result_date_filter(DrawResult.query, start_utc, end_utc)
+        for result in query.order_by(DrawResult.created_at).all():
             writer.writerow(
                 [
                     result.prize.name,
@@ -1931,7 +2044,11 @@ def register_routes(app):
         return Response(
             output.getvalue(),
             mimetype="text/csv",
-            headers={"Content-Disposition": "attachment; filename=draw_results.csv"},
+            headers={
+                "Content-Disposition": (
+                    f"attachment; filename={result_export_filename(filters)}"
+                )
+            },
         )
 
     @app.post("/reset-results")

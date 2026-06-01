@@ -7,12 +7,26 @@
     <h1>{{ t("results.title") }}</h1>
   </div>
   <div class="actions">
-    <a class="secondary" href="{{ url_for('export_results') }}">{{ t("results.export") }}</a>
+    <a class="secondary" href="{{ url_for('export_results', start_date=filters.start_date, end_date=filters.end_date) }}">{{ t("results.export") }}</a>
     <form method="post" action="{{ url_for('reset_results') }}">
       <button class="danger" type="submit">{{ t("results.reset") }}</button>
     </form>
   </div>
 </div>
+
+<section class="panel">
+  <h2>{{ t("results.filter_title") }}</h2>
+  <form class="results-filter-form" method="get" action="{{ url_for('results') }}">
+    <label>{{ t("results.start_date") }}<input name="start_date" value="{{ filters.start_date }}" placeholder="{{ t('results.date_placeholder') }}" inputmode="numeric"></label>
+    <label>{{ t("results.end_date") }}<input name="end_date" value="{{ filters.end_date }}" placeholder="{{ t('results.date_placeholder') }}" inputmode="numeric"></label>
+    <button class="primary" type="submit">{{ t("results.apply_filter") }}</button>
+    <div class="filter-shortcuts">
+      <a class="secondary" href="{{ url_for('results', start_date=presets.today.start_date, end_date=presets.today.end_date) }}">{{ t("results.today") }}</a>
+      <a class="secondary" href="{{ url_for('results', start_date=presets.this_year.start_date, end_date=presets.this_year.end_date) }}">{{ t("results.this_year") }}</a>
+      <a class="secondary" href="{{ url_for('results') }}">{{ t("results.all_time") }}</a>
+    </div>
+  </form>
+</section>
 
 <section class="panel">
   <table>
