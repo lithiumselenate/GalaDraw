@@ -52,7 +52,7 @@
     action="{{ url_for('reset_employees') }}"
     onsubmit="return confirm('{{ t('employee.reset_confirm') }}');"
   >
-    <label>{{ t("employee.confirm_text") }}<input name="confirmation" placeholder="{{ t('employee.confirm_placeholder') }}" autocomplete="off" required></label>
+    <label>{{ t("employee.confirm_text") }}<input name="confirmation" placeholder="{{ t('employee.confirm_value') }}" autocomplete="off" required></label>
     <button class="danger" type="submit">{{ t("employee.reset") }}</button>
   </form>
 </section>

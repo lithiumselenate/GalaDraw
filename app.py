@@ -241,7 +241,9 @@ TRANSLATIONS["zh"].update(
         "employee.reset_hint": "删除所有员工记录，并清空已有抽奖结果。提交前请输入“清空员工”。",
         "employee.reset_confirm": "确认重置所有员工信息并清空抽奖结果？",
         "employee.confirm_text": "确认文本",
+        "employee.confirm_value": "清空员工",
         "employee.confirm_placeholder": "清空员工",
+        "employee.reset_cancelled": "员工重置已取消。请输入“清空员工”进行确认。",
         "employee.reset": "重置员工",
         "employee.list": "员工列表",
         "employee.search_label": "搜索员工姓名或编号",
@@ -435,10 +437,12 @@ TRANSLATIONS["en"].update(
         "employee.import_hint": "File headers: Employee No., Name, Department.",
         "employee.import": "Import",
         "employee.reset_title": "Reset Employees",
-        "employee.reset_hint": "Delete all employee records and clear existing draw results. Enter the confirmation text before submitting.",
+        "employee.reset_hint": "Delete all employee records and clear existing draw results. Enter \"Clear employees\" before submitting.",
         "employee.reset_confirm": "Reset all employee information and clear draw results?",
         "employee.confirm_text": "Confirmation text",
+        "employee.confirm_value": "Clear employees",
         "employee.confirm_placeholder": "Clear employees",
+        "employee.reset_cancelled": "Employee reset cancelled. Enter \"Clear employees\" to confirm.",
         "employee.reset": "Reset Employees",
         "employee.list": "Employee List",
         "employee.search_label": "Search by employee name or number",
@@ -1774,8 +1778,8 @@ def register_routes(app):
     @permission_required("employee.reset")
     def reset_employees():
         confirmation = request.form.get("confirmation", "").strip()
-        if confirmation != "清空员工":
-            flash("员工重置已取消。请输入“清空员工”进行确认。", "error")
+        if confirmation != translate("employee.confirm_value"):
+            flash(translate("employee.reset_cancelled"), "error")
             return redirect(url_for("employees"))
 
         DrawResult.query.delete()
