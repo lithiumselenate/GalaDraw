@@ -833,6 +833,14 @@ def csv_row_value(row, *keys):
     return None
 
 
+def csv_download_response(output, filename):
+    return Response(
+        output.getvalue().encode("utf-8-sig"),
+        content_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -1787,11 +1795,7 @@ def register_routes(app):
                     employee.created_at.isoformat(),
                 ]
             )
-        return Response(
-            output.getvalue(),
-            mimetype="text/csv",
-            headers={"Content-Disposition": "attachment; filename=employees.csv"},
-        )
+        return csv_download_response(output, "employees.csv")
 
     @app.post("/employees/<int:employee_id>/eligibility")
     @permission_required("employee.update")
@@ -1904,11 +1908,7 @@ def register_routes(app):
                     ),
                 ]
             )
-        return Response(
-            output.getvalue(),
-            mimetype="text/csv",
-            headers={"Content-Disposition": "attachment; filename=prizes.csv"},
-        )
+        return csv_download_response(output, "prizes.csv")
 
     @app.post("/prizes/import")
     @permission_required("prize.create")
@@ -2188,15 +2188,7 @@ def register_routes(app):
                     result.created_at.isoformat(),
                 ]
             )
-        return Response(
-            output.getvalue(),
-            mimetype="text/csv",
-            headers={
-                "Content-Disposition": (
-                    f"attachment; filename={result_export_filename(filters)}"
-                )
-            },
-        )
+        return csv_download_response(output, result_export_filename(filters))
 
     @app.post("/reset-results")
     @permission_required("draw.result.reset")

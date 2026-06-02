@@ -1,6 +1,54 @@
 const drawForm = document.querySelector("[data-draw-form]");
 const winnerCards = Array.from(document.querySelectorAll(".winner-card"));
 
+function parseColor(value) {
+  const trimmed = String(value || "").trim();
+  const hex = trimmed.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hex) {
+    const raw = hex[1].length === 3
+      ? hex[1].split("").map((item) => item + item).join("")
+      : hex[1];
+    return [
+      Number.parseInt(raw.slice(0, 2), 16),
+      Number.parseInt(raw.slice(2, 4), 16),
+      Number.parseInt(raw.slice(4, 6), 16),
+    ];
+  }
+
+  const rgb = trimmed.match(/rgba?\(([^)]+)\)/i);
+  if (!rgb) {
+    return null;
+  }
+  return rgb[1].split(",").slice(0, 3).map((item) => Number.parseFloat(item.trim()));
+}
+
+function relativeLuminance([red, green, blue]) {
+  const values = [red, green, blue].map((channel) => {
+    const normalized = channel / 255;
+    return normalized <= 0.03928
+      ? normalized / 12.92
+      : ((normalized + 0.055) / 1.055) ** 2.4;
+  });
+  return values[0] * 0.2126 + values[1] * 0.7152 + values[2] * 0.0722;
+}
+
+function syncShowtimeTheme() {
+  if (!document.body.classList.contains("showtime")) {
+    return;
+  }
+
+  const styles = window.getComputedStyle(document.body);
+  const sample = styles.getPropertyValue("--showtime-bg-sample") || styles.backgroundColor;
+  const color = parseColor(sample);
+  if (!color) {
+    return;
+  }
+
+  const lightBackground = relativeLuminance(color) > 0.5;
+  document.body.classList.toggle("theme-light-bg", lightBackground);
+  document.body.classList.toggle("theme-dark-bg", !lightBackground);
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -118,6 +166,8 @@ if (drawForm) {
     }
   });
 }
+
+syncShowtimeTheme();
 
 if (winnerCards.length) {
   const animated = document.body.classList.contains("animate-winners");

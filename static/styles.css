@@ -583,13 +583,50 @@ th {
 }
 
 .showtime {
+  --showtime-bg-sample: #1b1b1b;
+  --showtime-fg: #ededed;
+  --showtime-muted: rgba(237, 237, 237, 0.74);
+  --showtime-panel-bg: rgba(255, 255, 255, 0.08);
+  --showtime-panel-border: rgba(255, 255, 255, 0.18);
+  --showtime-panel-strong: rgba(237, 237, 237, 0.9);
+  --showtime-accent: #8aaa57;
+  --showtime-accent-strong: #a9c875;
+  --showtime-button-fg: #fff;
+  --showtime-grid-line: rgba(255, 255, 255, 0.06);
+  --showtime-grid-line-strong: rgba(255, 255, 255, 0.05);
   min-height: 100vh;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 18% 16%, rgba(255, 205, 102, 0.24), transparent 28%),
-    radial-gradient(circle at 84% 24%, rgba(89, 178, 255, 0.18), transparent 30%),
-    linear-gradient(135deg, #160b21 0%, #2a1024 38%, #38180d 100%);
-  color: #fff;
+    radial-gradient(circle at 18% 16%, rgba(138, 170, 87, 0.18), transparent 30%),
+    radial-gradient(circle at 84% 22%, rgba(255, 255, 255, 0.06), transparent 28%),
+    linear-gradient(135deg, #171717 0%, #202020 46%, #111 100%);
+  color: var(--showtime-fg);
+}
+
+.showtime.theme-light-bg {
+  --showtime-fg: #1f2933;
+  --showtime-muted: rgba(31, 41, 51, 0.72);
+  --showtime-panel-bg: rgba(255, 255, 255, 0.68);
+  --showtime-panel-border: rgba(31, 41, 51, 0.2);
+  --showtime-panel-strong: rgba(31, 41, 51, 0.86);
+  --showtime-accent: #8a4f00;
+  --showtime-accent-strong: #5b3300;
+  --showtime-button-fg: #fff;
+  --showtime-grid-line: rgba(31, 41, 51, 0.08);
+  --showtime-grid-line-strong: rgba(31, 41, 51, 0.07);
+}
+
+.showtime.theme-dark-bg {
+  --showtime-fg: #ededed;
+  --showtime-muted: rgba(237, 237, 237, 0.74);
+  --showtime-panel-bg: rgba(255, 255, 255, 0.08);
+  --showtime-panel-border: rgba(255, 255, 255, 0.18);
+  --showtime-panel-strong: rgba(237, 237, 237, 0.9);
+  --showtime-accent: #8aaa57;
+  --showtime-accent-strong: #a9c875;
+  --showtime-button-fg: #fff;
+  --showtime-grid-line: rgba(255, 255, 255, 0.06);
+  --showtime-grid-line-strong: rgba(255, 255, 255, 0.05);
 }
 
 .showtime::before {
@@ -598,8 +635,8 @@ th {
   pointer-events: none;
   content: "";
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    linear-gradient(var(--showtime-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--showtime-grid-line-strong) 1px, transparent 1px);
   background-size: 64px 64px;
   mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent);
 }
@@ -625,9 +662,9 @@ th {
 .backstage-link,
 .showtime-status span,
 .showtime-secondary {
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.09);
-  color: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--showtime-panel-border);
+  background: var(--showtime-panel-bg);
+  color: var(--showtime-panel-strong);
   backdrop-filter: blur(16px);
 }
 
@@ -671,7 +708,7 @@ th {
 
 .showtime-kicker {
   margin: 0;
-  color: #ffd37a;
+  color: var(--showtime-accent);
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -688,7 +725,7 @@ th {
 .showtime-note {
   max-width: 680px;
   margin: 0;
-  color: rgba(255, 255, 255, 0.76);
+  color: var(--showtime-muted);
   font-size: 19px;
 }
 
@@ -725,7 +762,7 @@ th {
 
 .draw-placeholder {
   display: none;
-  color: rgba(255, 255, 255, 0.76);
+  color: var(--showtime-muted);
   font-weight: 800;
 }
 
@@ -741,11 +778,11 @@ th {
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border: 3px solid rgba(255, 211, 122, 0.78);
+  border: 3px solid color-mix(in srgb, var(--showtime-accent) 78%, transparent);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 42px rgba(255, 184, 77, 0.24);
-  color: #ffe5a8;
+  background: var(--showtime-panel-bg);
+  box-shadow: 0 0 42px rgba(138, 170, 87, 0.28);
+  color: var(--showtime-accent-strong);
   font-size: 54px;
   font-weight: 900;
 }
@@ -765,9 +802,9 @@ th {
   display: grid;
   place-items: center;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--showtime-panel-border);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--showtime-panel-bg);
   box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.04);
 }
 
@@ -788,19 +825,19 @@ th {
   display: grid;
   place-items: center;
   gap: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--showtime-panel-border);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--showtime-panel-bg);
 }
 
 .static-draw-window strong {
-  color: #ffe5a8;
+  color: var(--showtime-accent-strong);
   font-size: 56px;
   line-height: 1;
 }
 
 .static-draw-window span {
-  color: rgba(255, 255, 255, 0.76);
+  color: var(--showtime-muted);
   font-weight: 800;
 }
 
@@ -808,7 +845,7 @@ th {
   max-width: 100%;
   padding: 0 28px;
   overflow: hidden;
-  color: #fff;
+  color: var(--showtime-fg);
   font-size: clamp(30px, 5vw, 64px);
   font-weight: 900;
   line-height: 1.08;
@@ -829,14 +866,14 @@ th {
 
 .prize-picker label,
 .showtime-form label {
-  color: rgba(255, 255, 255, 0.76);
+  color: var(--showtime-muted);
   text-align: left;
 }
 
 .prize-picker select,
 .showtime-form select,
 .seconds-option input {
-  border-color: rgba(255, 255, 255, 0.24);
+  border-color: var(--showtime-panel-border);
   background: rgba(255, 255, 255, 0.92);
 }
 
@@ -853,17 +890,17 @@ th {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--showtime-panel-border);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: var(--showtime-panel-bg);
+  color: var(--showtime-fg);
   font-weight: 800;
 }
 
 .switch-option input {
   width: 18px;
   min-height: 18px;
-  accent-color: #ffd37a;
+  accent-color: var(--showtime-accent);
 }
 
 .seconds-option input {
@@ -881,9 +918,9 @@ th {
   border: 0;
   border-radius: 8px;
   padding: 0 28px;
-  background: linear-gradient(135deg, #ffd37a, #ff8a3d);
-  color: #2b1308;
-  box-shadow: 0 18px 42px rgba(255, 128, 64, 0.24);
+  background: linear-gradient(135deg, #9fbd67, #73973f);
+  color: var(--showtime-button-fg);
+  box-shadow: 0 18px 42px rgba(115, 151, 63, 0.28);
   font-size: 22px;
   font-weight: 900;
 }
@@ -906,10 +943,10 @@ th {
 
 .showtime-winners .winner-card {
   min-height: 172px;
-  border-color: rgba(255, 211, 122, 0.44);
-  background: rgba(255, 255, 255, 0.12);
+  border-color: color-mix(in srgb, var(--showtime-accent) 44%, transparent);
+  background: var(--showtime-panel-bg);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
-  color: #fff;
+  color: var(--showtime-fg);
   backdrop-filter: blur(18px);
 }
 
@@ -919,11 +956,11 @@ th {
 
 .showtime-winners .winner-card span,
 .showtime-winners .winner-card em {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--showtime-muted);
 }
 
 .showtime-winners .winner-card strong {
-  color: #ffe4a8;
+  color: var(--showtime-accent-strong);
   font-size: clamp(30px, 4vw, 48px);
 }
 
