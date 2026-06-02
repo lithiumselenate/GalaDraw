@@ -14,7 +14,7 @@
       <div class="showtime-top">
         <a class="backstage-link" href="{{ url_for('index') }}">{{ t("common.back_admin") }}</a>
         <div class="showtime-status">
-          <span>{{ t("draw.winner_count").format(count=session.results|length) }}</span>
+          <span>{{ t("draw.winner_count").format(count=session.results|selectattr("status", "equalto", "active")|list|length) }}</span>
         </div>
       </div>
 
@@ -23,10 +23,21 @@
         <h1>{{ session.prize.name }}</h1>
         <div class="winner-grid showtime-winners">
           {% for winner in session.results %}
-            <article class="winner-card{% if not show_animation %} show{% endif %}">
+            <article class="winner-card {% if winner.status == 'waived' %}is-waived{% endif %}{% if not show_animation %} show{% endif %}">
               <span>{{ winner.employee.employee_no }}</span>
               <strong>{{ winner.employee.name }}</strong>
               <em>{{ winner.employee.department }}</em>
+              <small>{{ t("results.status_waived") if winner.status == "waived" else t("results.status_active") }}</small>
+              {% if winner.status == "active" %}
+                <form
+                  class="winner-redraw-form"
+                  method="post"
+                  action="{{ url_for('waive_and_redraw_result', result_id=winner.id) }}"
+                  onsubmit="return confirm('{{ t('draw.waive_redraw_confirm') }}');"
+                >
+                  <button class="showtime-secondary" type="submit">{{ t("draw.waive_redraw") }}</button>
+                </form>
+              {% endif %}
             </article>
           {% else %}
             <p class="showtime-note">{{ t("results.empty") }}</p>

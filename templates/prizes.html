@@ -41,6 +41,7 @@
         </div>
         <form class="button-row" method="post" action="{{ url_for('update_draw_settings') }}">
           <input type="hidden" name="auto_disable_winners" value="{{ 1 if settings.auto_disable_winners else 0 }}">
+          <input type="hidden" name="countdown_seconds" value="{{ settings.countdown_seconds }}">
           {% if settings.roll_names %}
             <button class="secondary" name="roll_names" value="0" type="submit">{{ t("prize.roll_off") }}</button>
           {% else %}
@@ -55,11 +56,24 @@
         </div>
         <form class="button-row" method="post" action="{{ url_for('update_draw_settings') }}">
           <input type="hidden" name="roll_names" value="{{ 1 if settings.roll_names else 0 }}">
+          <input type="hidden" name="countdown_seconds" value="{{ settings.countdown_seconds }}">
           {% if settings.auto_disable_winners %}
             <button class="secondary" name="auto_disable_winners" value="0" type="submit">{{ t("prize.auto_disable_off") }}</button>
           {% else %}
             <button class="primary" name="auto_disable_winners" value="1" type="submit">{{ t("prize.auto_disable_on") }}</button>
           {% endif %}
+        </form>
+      </div>
+      <div class="setting-row">
+        <div>
+          <strong>{{ t("prize.countdown_seconds") }}</strong>
+          <p class="muted">{{ t("prize.countdown_seconds_hint").format(seconds=settings.countdown_seconds) }}</p>
+        </div>
+        <form class="button-row" method="post" action="{{ url_for('update_draw_settings') }}">
+          <input type="hidden" name="roll_names" value="{{ 1 if settings.roll_names else 0 }}">
+          <input type="hidden" name="auto_disable_winners" value="{{ 1 if settings.auto_disable_winners else 0 }}">
+          <input name="countdown_seconds" type="number" min="1" max="10" value="{{ settings.countdown_seconds }}" required>
+          <button class="primary" type="submit">{{ t("prize.save_countdown") }}</button>
         </form>
       </div>
     </div>

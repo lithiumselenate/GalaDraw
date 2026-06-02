@@ -31,7 +31,7 @@
 <section class="panel">
   <table>
     <thead>
-      <tr><th>{{ t("results.prize") }}</th><th>{{ t("employee.number_short") }}</th><th>{{ t("common.name") }}</th><th>{{ t("common.department") }}</th><th>{{ t("common.time") }}</th></tr>
+      <tr><th>{{ t("results.prize") }}</th><th>{{ t("employee.number_short") }}</th><th>{{ t("common.name") }}</th><th>{{ t("common.department") }}</th><th>{{ t("results.status") }}</th><th>{{ t("common.time") }}</th></tr>
     </thead>
     <tbody>
       {% for result in results %}
@@ -40,10 +40,11 @@
           <td>{{ result.employee.employee_no }}</td>
           <td>{{ result.employee.name }}</td>
           <td>{{ result.employee.department }}</td>
+          <td>{{ t("results.status_waived") if result.status == "waived" else t("results.status_active") }}</td>
           <td>{{ (result.created_at + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S") }}</td>
         </tr>
       {% else %}
-        <tr><td colspan="5">{{ t("results.empty") }}</td></tr>
+        <tr><td colspan="6">{{ t("results.empty") }}</td></tr>
       {% endfor %}
     </tbody>
   </table>

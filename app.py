@@ -285,6 +285,9 @@ TRANSLATIONS["zh"].update(
         "prize.auto_disable": "中奖后自动设为不可参与",
         "prize.auto_disable_off": "关闭自动禁用",
         "prize.auto_disable_on": "开启自动禁用",
+        "prize.countdown_seconds": "抽奖倒计时",
+        "prize.countdown_seconds_hint": "当前为 {seconds} 秒。",
+        "prize.save_countdown": "保存倒计时",
         "prize.reset_title": "重设抽奖项目",
         "prize.reset_hint": "删除所有奖项，并清空已有抽奖结果。",
         "prize.reset_confirm": "确认重设所有抽奖项目并清空抽奖结果？",
@@ -315,11 +318,18 @@ TRANSLATIONS["zh"].update(
         "draw.congrats": "恭喜中奖",
         "draw.view_results": "查看结果",
         "draw.next": "下一次抽奖",
+        "draw.waive_redraw": "放弃并补抽",
+        "draw.waive_redraw_confirm": "确认放弃该中奖名额并立即补抽？放弃者会恢复为可参与后续抽奖。",
+        "draw.redraw_no_candidates": "当前没有可补抽员工。",
+        "draw.redraw_completed": "{old_name} 已放弃，已补抽 {new_name}。",
         "results.eyebrow": "记录",
         "results.title": "抽奖结果",
         "results.export": "导出结果文件",
         "results.reset": "重置结果",
         "results.prize": "奖项",
+        "results.status": "状态",
+        "results.status_active": "有效",
+        "results.status_waived": "已放弃",
         "results.empty": "暂无抽奖结果。",
         "results.filter_title": "按抽奖时间筛选",
         "results.start_date": "开始日期",
@@ -506,6 +516,9 @@ TRANSLATIONS["en"].update(
         "prize.auto_disable": "Set winners ineligible automatically",
         "prize.auto_disable_off": "Turn Auto-disable Off",
         "prize.auto_disable_on": "Turn Auto-disable On",
+        "prize.countdown_seconds": "Draw countdown",
+        "prize.countdown_seconds_hint": "Currently {seconds} seconds.",
+        "prize.save_countdown": "Save Countdown",
         "prize.reset_title": "Reset Prizes",
         "prize.reset_hint": "Delete all prizes and clear existing draw results.",
         "prize.reset_confirm": "Reset all prizes and clear draw results?",
@@ -536,11 +549,18 @@ TRANSLATIONS["en"].update(
         "draw.congrats": "Congratulations",
         "draw.view_results": "View Results",
         "draw.next": "Next Draw",
+        "draw.waive_redraw": "Waive & Redraw",
+        "draw.waive_redraw_confirm": "Waive this winning slot and redraw now? The waived winner will become eligible for later draws.",
+        "draw.redraw_no_candidates": "There are no employees available for redraw.",
+        "draw.redraw_completed": "{old_name} waived the prize. {new_name} was redrawn.",
         "results.eyebrow": "Records",
         "results.title": "Draw Results",
         "results.export": "Export Results",
         "results.reset": "Reset Results",
         "results.prize": "Prize",
+        "results.status": "Status",
+        "results.status_active": "Active",
+        "results.status_waived": "Waived",
         "results.empty": "No draw results.",
         "results.filter_title": "Filter by draw time",
         "results.start_date": "Start date",
@@ -680,8 +700,10 @@ def get_bool_setting(name, default=True):
 
 
 def get_int_setting(name, default, minimum, maximum):
+    saved_setting = AppSetting.query.filter_by(name=name).first()
+    raw_value = saved_setting.value if saved_setting else os.environ.get(name, default)
     try:
-        value = int(os.environ.get(name, default))
+        value = int(raw_value)
     except (TypeError, ValueError):
         value = default
     return max(minimum, min(maximum, value))
@@ -692,7 +714,7 @@ def get_draw_settings():
         "roll_names": get_bool_setting("DRAW_ROLL_NAMES", True),
         "auto_disable_winners": get_bool_setting("DRAW_AUTO_DISABLE_WINNERS", True),
         "countdown": get_bool_setting("DRAW_COUNTDOWN", True),
-        "countdown_seconds": get_int_setting("DRAW_COUNTDOWN_SECONDS", 3, 1, 10),
+        "countdown_seconds": get_int_setting("DRAW_COUNTDOWN_SECONDS", 5, 1, 10),
     }
 
 
@@ -702,6 +724,14 @@ def set_bool_setting(name, enabled):
         setting = AppSetting(name=name)
         db.session.add(setting)
     setting.value = "1" if enabled else "0"
+
+
+def set_int_setting(name, value, minimum, maximum):
+    setting = AppSetting.query.filter_by(name=name).first()
+    if setting is None:
+        setting = AppSetting(name=name)
+        db.session.add(setting)
+    setting.value = str(max(minimum, min(maximum, value)))
 
 
 def get_language():
@@ -965,7 +995,9 @@ class DrawResult(db.Model):
     session_id = db.Column(db.Integer, db.ForeignKey("draw_session.id"), nullable=False)
     prize_id = db.Column(db.Integer, db.ForeignKey("prize.id"), nullable=False)
     employee_id = db.Column(db.Integer, db.ForeignKey("employee.id"), nullable=False)
+    status = db.Column(db.String(20), default="active", nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    waived_at = db.Column(db.DateTime)
 
     session = db.relationship("DrawSession", back_populates="results")
     prize = db.relationship("Prize")
@@ -988,6 +1020,7 @@ def create_app():
         seed_auth_data()
         migrate_draw_result_duplicate_winners()
         migrate_prize_active_column()
+        migrate_draw_result_status_columns()
 
     register_routes(app)
     return app
@@ -1126,6 +1159,21 @@ def migrate_prize_active_column():
     db.session.execute(
         text("ALTER TABLE prize ADD COLUMN active BOOLEAN NOT NULL DEFAULT 1")
     )
+    db.session.commit()
+
+
+def migrate_draw_result_status_columns():
+    if not db.engine.url.drivername.startswith("sqlite"):
+        return
+
+    columns = db.session.execute(text("PRAGMA table_info(draw_result)")).mappings().all()
+    column_names = {column["name"] for column in columns}
+    if "status" not in column_names:
+        db.session.execute(
+            text("ALTER TABLE draw_result ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'active'")
+        )
+    if "waived_at" not in column_names:
+        db.session.execute(text("ALTER TABLE draw_result ADD COLUMN waived_at DATETIME"))
     db.session.commit()
 
 
@@ -2067,8 +2115,13 @@ def register_routes(app):
     def update_draw_settings():
         roll_names = request.form.get("roll_names") == "1"
         auto_disable_winners = request.form.get("auto_disable_winners") == "1"
+        countdown_seconds = parse_positive_int(
+            request.form.get("countdown_seconds"),
+            get_draw_settings()["countdown_seconds"],
+        )
         set_bool_setting("DRAW_ROLL_NAMES", roll_names)
         set_bool_setting("DRAW_AUTO_DISABLE_WINNERS", auto_disable_winners)
+        set_int_setting("DRAW_COUNTDOWN_SECONDS", countdown_seconds, 1, 10)
         db.session.commit()
         flash("抽奖设置已更新。", "success")
         return redirect(url_for("prizes"))
@@ -2126,6 +2179,57 @@ def register_routes(app):
             show_animation=False,
         )
 
+    @app.post("/draw/results/<int:result_id>/redraw")
+    @permission_required("draw.execute")
+    def waive_and_redraw_result(result_id):
+        result = DrawResult.query.get_or_404(result_id)
+        if result.status != "active":
+            flash(translate("draw.redraw_no_candidates"), "error")
+            return redirect(url_for("draw_session_result", session_id=result.session_id))
+
+        active_winner_ids = {
+            employee_id
+            for (employee_id,) in (
+                db.session.query(DrawResult.employee_id)
+                .filter_by(prize_id=result.prize_id, status="active")
+                .all()
+            )
+        }
+        active_winner_ids.add(result.employee_id)
+        candidates = (
+            Employee.query.filter_by(eligible=True)
+            .filter(~Employee.id.in_(active_winner_ids))
+            .all()
+        )
+        if not candidates:
+            flash(translate("draw.redraw_no_candidates"), "error")
+            return redirect(url_for("draw_session_result", session_id=result.session_id))
+
+        replacement = random.choice(candidates)
+        old_name = result.employee.name
+        result.status = "waived"
+        result.waived_at = datetime.utcnow()
+        result.employee.eligible = True
+        db.session.add(
+            DrawResult(
+                session_id=result.session_id,
+                prize_id=result.prize_id,
+                employee_id=replacement.id,
+                status="active",
+            )
+        )
+        if get_draw_settings()["auto_disable_winners"]:
+            replacement.eligible = False
+        db.session.commit()
+        flash(
+            translate("draw.redraw_completed").format(
+                old_name=old_name,
+                new_name=replacement.name,
+            ),
+            "success",
+        )
+        return redirect(url_for("draw_session_result", session_id=result.session_id))
+
     @app.post("/draw")
     @permission_required("draw.execute")
     def draw():
@@ -2150,7 +2254,9 @@ def register_routes(app):
                     {
                         "ok": True,
                         "winners": [
-                            result.employee.name for result in session.results
+                            result.employee.name
+                            for result in session.results
+                            if result.status == "active"
                         ],
                         "result_url": url_for(
                             "draw_session_result",
@@ -2232,9 +2338,9 @@ def register_routes(app):
         output = StringIO()
         writer = csv.writer(output)
         if getattr(g, "language", "zh") == "en":
-            writer.writerow(["prize", "employee_no", "name", "department", "draw_time"])
+            writer.writerow(["prize", "employee_no", "name", "department", "status", "draw_time"])
         else:
-            writer.writerow(["奖项", "员工编号", "姓名", "部门", "抽奖时间"])
+            writer.writerow(["奖项", "员工编号", "姓名", "部门", "状态", "抽奖时间"])
         query = apply_result_date_filter(DrawResult.query, start_utc, end_utc)
         for result in query.order_by(DrawResult.created_at).all():
             writer.writerow(
@@ -2243,6 +2349,11 @@ def register_routes(app):
                     result.employee.employee_no,
                     result.employee.name,
                     result.employee.department,
+                    (
+                        translate("results.status_waived")
+                        if result.status == "waived"
+                        else translate("results.status_active")
+                    ),
                     result.created_at.isoformat(),
                 ]
             )

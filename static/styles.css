@@ -953,18 +953,32 @@ th {
   backdrop-filter: blur(18px);
 }
 
+.showtime-winners .winner-card.is-waived {
+  opacity: 0.74;
+}
+
 .showtime-winners .winner-card.show {
   transition: opacity 520ms ease, transform 520ms ease;
 }
 
 .showtime-winners .winner-card span,
-.showtime-winners .winner-card em {
+.showtime-winners .winner-card em,
+.showtime-winners .winner-card small {
   color: var(--showtime-muted);
 }
 
 .showtime-winners .winner-card strong {
   color: var(--showtime-accent-strong);
   font-size: clamp(30px, 4vw, 48px);
+}
+
+.showtime-winners .winner-card small {
+  font-weight: 900;
+}
+
+.winner-redraw-form {
+  justify-self: center;
+  margin-top: 6px;
 }
 
 .showtime-actions {

@@ -64,13 +64,35 @@ def test_prize_draw_and_result_export_flow(client, module):
 def test_draw_page_renders_after_disabling_roll_animation(client):
     response = client.post(
         "/settings/draw",
-        data={"roll_names": "0", "auto_disable_winners": "0"},
+        data={
+            "roll_names": "0",
+            "auto_disable_winners": "0",
+            "countdown_seconds": "5",
+        },
         follow_redirects=False,
     )
     page_response = client.get("/draw")
 
     assert response.status_code == 302
     assert page_response.status_code == 200
+
+
+def test_draw_countdown_defaults_to_five_and_can_be_configured(client):
+    default_response = client.get("/draw")
+    update_response = client.post(
+        "/settings/draw",
+        data={
+            "roll_names": "1",
+            "auto_disable_winners": "1",
+            "countdown_seconds": "7",
+        },
+        follow_redirects=False,
+    )
+    updated_response = client.get("/draw")
+
+    assert 'data-seconds="5"' in default_response.get_data(as_text=True)
+    assert update_response.status_code == 302
+    assert 'data-seconds="7"' in updated_response.get_data(as_text=True)
 
 
 def test_export_and_import_prize_config(client, module):
@@ -194,5 +216,60 @@ def test_result_export_headers_follow_language(client, module):
         module.db.session.commit()
     chinese_export = client.get("/results/export.csv").get_data().decode("utf-8-sig")
 
-    assert english_export.startswith("prize,employee_no,name,department,draw_time")
-    assert chinese_export.startswith("奖项,员工编号,姓名,部门,抽奖时间")
+    assert english_export.startswith("prize,employee_no,name,department,status,draw_time")
+    assert chinese_export.startswith("奖项,员工编号,姓名,部门,状态,抽奖时间")
+
+
+def test_winner_can_waive_prize_and_redraw_replacement(client, module):
+    for employee_no, name in (
+        ("E001", "Alice"),
+        ("E002", "Bob"),
+        ("E003", "Carol"),
+    ):
+        client.post(
+            "/employees",
+            data={
+                "employee_no": employee_no,
+                "name": name,
+                "department": "Team",
+                "eligible": "on",
+            },
+        )
+    client.post(
+        "/prizes",
+        data={"name": "First Prize", "level": "1", "winner_count": "1"},
+    )
+
+    with module.app.app_context():
+        prize = module.Prize.query.filter_by(name="First Prize").one()
+
+    client.post(
+        "/draw",
+        data={"prize_id": str(prize.id), "request_id": "waive-redraw-request"},
+        headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+    )
+
+    with module.app.app_context():
+        original = module.DrawResult.query.filter_by(status="active").one()
+        original_employee_id = original.employee_id
+        original_result_id = original.id
+
+    response = client.post(
+        f"/draw/results/{original_result_id}/redraw",
+        follow_redirects=False,
+    )
+
+    with module.app.app_context():
+        results = module.DrawResult.query.order_by(module.DrawResult.id).all()
+        original_employee = module.db.session.get(module.Employee, original_employee_id)
+        active_results = [item for item in results if item.status == "active"]
+        waived_results = [item for item in results if item.status == "waived"]
+
+    assert response.status_code == 302
+    assert len(results) == 2
+    assert len(active_results) == 1
+    assert len(waived_results) == 1
+    assert waived_results[0].employee_id == original_employee_id
+    assert waived_results[0].waived_at is not None
+    assert active_results[0].employee_id != original_employee_id
+    assert original_employee.eligible is True
