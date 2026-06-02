@@ -74,6 +74,7 @@ PERMISSIONS = {
     "employee.create": "新增员工",
     "employee.import": "导入员工",
     "employee.update": "更新员工",
+    "employee.delete": "删除员工",
     "employee.reset": "重置员工",
     "prize.view": "查看奖项",
     "prize.create": "新增奖项",
@@ -105,6 +106,7 @@ PERMISSION_LABELS_EN = {
     "employee.create": "Create employees",
     "employee.import": "Import employees",
     "employee.update": "Update employees",
+    "employee.delete": "Delete employees",
     "employee.reset": "Reset employees",
     "prize.view": "View prizes",
     "prize.create": "Create prizes",
@@ -253,6 +255,9 @@ TRANSLATIONS["zh"].update(
         "employee.number_short": "编号",
         "employee.set_ineligible": "设为不可参与",
         "employee.set_eligible": "设为可参与",
+        "employee.delete": "删除",
+        "employee.delete_confirm": "确认删除该员工？相关中奖记录、员工关联申请和账户关联也会被清理。",
+        "employee.deleted": "员工 {name} 已删除，相关记录已清理。",
         "employee.ineligible": "不可参与",
         "employee.eligible_state": "可参与",
         "employee.empty": "暂无员工。",
@@ -471,6 +476,9 @@ TRANSLATIONS["en"].update(
         "employee.number_short": "No.",
         "employee.set_ineligible": "Set Ineligible",
         "employee.set_eligible": "Set Eligible",
+        "employee.delete": "Delete",
+        "employee.delete_confirm": "Delete this employee? Related winner records, link requests, and account links will also be cleaned up.",
+        "employee.deleted": "Employee {name} deleted and related records cleaned up.",
         "employee.ineligible": "Ineligible",
         "employee.eligible_state": "Eligible",
         "employee.empty": "No employees.",
@@ -631,6 +639,7 @@ DEFAULT_ROLE_PERMISSIONS = {
         "employee.create",
         "employee.import",
         "employee.update",
+        "employee.delete",
         "employee.reset",
         "prize.view",
         "prize.create",
@@ -1820,6 +1829,42 @@ def register_routes(app):
             f"{employee.name} 已设为{'可参与' if employee.eligible else '不可参与'}。",
             "success",
         )
+        return redirect(url_for("employees"))
+
+    @app.post("/employees/<int:employee_id>/delete")
+    @permission_required("employee.delete")
+    def delete_employee(employee_id):
+        employee = Employee.query.get_or_404(employee_id)
+        employee_name = employee.name
+        affected_session_ids = [
+            session_id
+            for (session_id,) in (
+                db.session.query(DrawResult.session_id)
+                .filter_by(employee_id=employee.id)
+                .distinct()
+                .all()
+            )
+        ]
+
+        DrawResult.query.filter_by(employee_id=employee.id).delete()
+        if affected_session_ids:
+            empty_sessions = (
+                DrawSession.query.filter(DrawSession.id.in_(affected_session_ids))
+                .outerjoin(DrawResult, DrawResult.session_id == DrawSession.id)
+                .filter(DrawResult.id.is_(None))
+                .all()
+            )
+            for session in empty_sessions:
+                db.session.delete(session)
+
+        EmployeeLinkRequest.query.filter_by(employee_id=employee.id).delete()
+        User.query.filter_by(employee_id=employee.id).update(
+            {"employee_id": None},
+            synchronize_session=False,
+        )
+        db.session.delete(employee)
+        db.session.commit()
+        flash(translate("employee.deleted").format(name=employee_name), "success")
         return redirect(url_for("employees"))
 
     @app.post("/employees/enable-all")

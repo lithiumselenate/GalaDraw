@@ -82,13 +82,25 @@
           <td>{{ employee.department }}</td>
           <td>{{ t("common.yes") if employee.eligible else t("common.no") }}</td>
           <td>
-            <form class="inline-form" method="post" action="{{ url_for('update_employee_eligibility', employee_id=employee.id) }}">
-              {% if employee.eligible %}
-                <button class="secondary" name="eligible" value="0" type="submit">{{ t("employee.set_ineligible") }}</button>
-              {% else %}
-                <button class="primary" name="eligible" value="1" type="submit">{{ t("employee.set_eligible") }}</button>
+            <div class="table-actions">
+              <form class="inline-form" method="post" action="{{ url_for('update_employee_eligibility', employee_id=employee.id) }}">
+                {% if employee.eligible %}
+                  <button class="secondary" name="eligible" value="0" type="submit">{{ t("employee.set_ineligible") }}</button>
+                {% else %}
+                  <button class="primary" name="eligible" value="1" type="submit">{{ t("employee.set_eligible") }}</button>
+                {% endif %}
+              </form>
+              {% if has_permission('employee.delete') %}
+                <form
+                  class="inline-form"
+                  method="post"
+                  action="{{ url_for('delete_employee', employee_id=employee.id) }}"
+                  onsubmit="return confirm('{{ t('employee.delete_confirm') }}');"
+                >
+                  <button class="danger" type="submit">{{ t("employee.delete") }}</button>
+                </form>
               {% endif %}
-            </form>
+            </div>
           </td>
         </tr>
       {% else %}

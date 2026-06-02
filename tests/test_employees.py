@@ -114,3 +114,59 @@ def test_employee_csv_headers_follow_language_and_import_english_headers(
         ("E001", "Alicia", "Product"),
         ("E002", "Bob", "Sales"),
     ]
+
+
+def test_delete_employee_cleans_related_records(client, module):
+    client.post(
+        "/employees",
+        data={
+            "employee_no": "E001",
+            "name": "Alice",
+            "department": "Engineering",
+            "eligible": "on",
+        },
+    )
+    client.post(
+        "/prizes",
+        data={"name": "First Prize", "level": "1", "winner_count": "1"},
+    )
+
+    with module.app.app_context():
+        employee = module.Employee.query.filter_by(employee_no="E001").one()
+        prize = module.Prize.query.filter_by(name="First Prize").one()
+        user = module.User(username="linked-user", role="user", status="active")
+        user.set_password("password123")
+        user.employee_id = employee.id
+        module.db.session.add(user)
+        module.db.session.flush()
+        module.db.session.add(
+            module.EmployeeLinkRequest(
+                user_id=user.id,
+                employee_id=employee.id,
+                status="pending",
+            )
+        )
+        module.db.session.commit()
+        employee_id = employee.id
+        prize_id = prize.id
+
+    client.post(
+        "/draw",
+        data={"prize_id": str(prize_id), "request_id": "delete-employee-request"},
+        headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+    )
+    response = client.post(
+        f"/employees/{employee_id}/delete",
+        follow_redirects=False,
+    )
+
+    with module.app.app_context():
+        linked_user = module.User.query.filter_by(username="linked-user").one()
+
+        assert module.db.session.get(module.Employee, employee_id) is None
+        assert module.DrawResult.query.count() == 0
+        assert module.DrawSession.query.count() == 0
+        assert module.EmployeeLinkRequest.query.count() == 0
+        assert linked_user.employee_id is None
+
+    assert response.status_code == 302
