@@ -32,6 +32,7 @@ def test_create_update_and_export_employee(client, module):
     assert employee.eligible is False
     assert export_response.status_code == 200
     assert export_response.mimetype == "text/csv"
+    assert export_response.get_data().startswith(b"\xef\xbb\xbf")
     assert "Alice" in export_response.get_data(as_text=True)
 
 
@@ -82,12 +83,12 @@ def test_employee_csv_headers_follow_language_and_import_english_headers(
     with module.app.app_context():
         module.set_language("en")
         module.db.session.commit()
-    english_export = client.get("/employees/export.csv").get_data(as_text=True)
+    english_export = client.get("/employees/export.csv").get_data().decode("utf-8-sig")
 
     with module.app.app_context():
         module.set_language("zh")
         module.db.session.commit()
-    chinese_export = client.get("/employees/export.csv").get_data(as_text=True)
+    chinese_export = client.get("/employees/export.csv").get_data().decode("utf-8-sig")
 
     upload = BytesIO(
         (

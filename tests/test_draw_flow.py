@@ -57,6 +57,7 @@ def test_prize_draw_and_result_export_flow(client, module):
     assert eligible_count == 1
     assert results_response.status_code == 200
     assert export_response.status_code == 200
+    assert export_response.get_data().startswith(b"\xef\xbb\xbf")
     assert "First Prize" in export_response.get_data(as_text=True)
 
 
@@ -103,6 +104,7 @@ def test_export_and_import_prize_config(client, module):
 
     assert export_response.status_code == 200
     assert export_response.mimetype == "text/csv"
+    assert export_response.get_data().startswith(b"\xef\xbb\xbf")
     assert "First Prize" in export_response.get_data(as_text=True)
     assert import_response.status_code == 302
     assert [(item.name, item.level, item.winner_count, item.active) for item in prizes] == [
@@ -123,14 +125,14 @@ def test_prize_config_csv_headers_follow_language_and_import_chinese_headers(
     with module.app.app_context():
         module.set_language("en")
         module.db.session.commit()
-    english_export = client.get("/prizes/export.csv").get_data(as_text=True)
+    english_export = client.get("/prizes/export.csv").get_data().decode("utf-8-sig")
 
     with module.app.app_context():
         module.set_language("zh")
         module.db.session.commit()
         existing = module.Prize.query.filter_by(name="一等奖").one()
         existing_id = existing.id
-    chinese_export = client.get("/prizes/export.csv").get_data(as_text=True)
+    chinese_export = client.get("/prizes/export.csv").get_data().decode("utf-8-sig")
 
     upload = BytesIO(
         (
@@ -185,12 +187,12 @@ def test_result_export_headers_follow_language(client, module):
     with module.app.app_context():
         module.set_language("en")
         module.db.session.commit()
-    english_export = client.get("/results/export.csv").get_data(as_text=True)
+    english_export = client.get("/results/export.csv").get_data().decode("utf-8-sig")
 
     with module.app.app_context():
         module.set_language("zh")
         module.db.session.commit()
-    chinese_export = client.get("/results/export.csv").get_data(as_text=True)
+    chinese_export = client.get("/results/export.csv").get_data().decode("utf-8-sig")
 
     assert english_export.startswith("prize,employee_no,name,department,draw_time")
     assert chinese_export.startswith("奖项,员工编号,姓名,部门,抽奖时间")
