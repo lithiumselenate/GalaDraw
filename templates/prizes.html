@@ -6,6 +6,7 @@
     <p class="eyebrow">{{ t("prize.eyebrow") }}</p>
     <h1>{{ t("prize.title") }}</h1>
   </div>
+  <a class="secondary" href="{{ url_for('export_prizes') }}">{{ t("prize.export") }}</a>
 </div>
 
 <section class="grid two">
@@ -17,6 +18,19 @@
     <button class="primary" type="submit">{{ t("prize.add") }}</button>
   </form>
 
+  <form class="panel" method="post" action="{{ url_for('import_prizes') }}" enctype="multipart/form-data">
+    <h2>{{ t("prize.import_title") }}</h2>
+    <p class="muted">{{ t("prize.import_hint") }}</p>
+    <div class="file-picker">
+      <label class="secondary" for="prize-import-file">{{ t("prize.choose_csv") }}</label>
+      <span class="file-picker-name" data-empty-text="{{ t('employee.no_file_selected') }}">{{ t("employee.no_file_selected") }}</span>
+      <input id="prize-import-file" type="file" name="file" accept=".csv" required>
+    </div>
+    <button class="secondary" type="submit">{{ t("prize.import") }}</button>
+  </form>
+</section>
+
+<section class="grid two">
   <div class="panel">
     <h2>{{ t("prize.settings") }}</h2>
     <div class="setting-list">
@@ -103,4 +117,13 @@
     </tbody>
   </table>
 </section>
+<script>
+  document.querySelectorAll(".file-picker input[type='file']").forEach((input) => {
+    input.addEventListener("change", () => {
+      const picker = input.closest(".file-picker");
+      const name = picker.querySelector(".file-picker-name");
+      name.textContent = input.files.length ? input.files[0].name : name.dataset.emptyText;
+    });
+  });
+</script>
 {% endblock %}

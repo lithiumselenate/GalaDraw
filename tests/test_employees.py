@@ -63,3 +63,53 @@ def test_import_employees_csv_creates_and_updates_rows(client, module):
         ("E001", "Alicia", "Product"),
         ("E002", "Bob", "Sales"),
     ]
+
+
+def test_employee_csv_headers_follow_language_and_import_english_headers(
+    client,
+    module,
+):
+    client.post(
+        "/employees",
+        data={
+            "employee_no": "E001",
+            "name": "Alice",
+            "department": "Engineering",
+            "eligible": "on",
+        },
+    )
+
+    with module.app.app_context():
+        module.set_language("en")
+        module.db.session.commit()
+    english_export = client.get("/employees/export.csv").get_data(as_text=True)
+
+    with module.app.app_context():
+        module.set_language("zh")
+        module.db.session.commit()
+    chinese_export = client.get("/employees/export.csv").get_data(as_text=True)
+
+    upload = BytesIO(
+        (
+            "Employee No.,Name,Department\n"
+            "E001,Alicia,Product\n"
+            "E002,Bob,Sales\n"
+        ).encode("utf-8")
+    )
+    response = client.post(
+        "/employees/import",
+        data={"file": (upload, "employees-natural-headers.csv")},
+        content_type="multipart/form-data",
+        follow_redirects=False,
+    )
+
+    with module.app.app_context():
+        employees = module.Employee.query.order_by(module.Employee.employee_no).all()
+
+    assert english_export.startswith("employee_no,name,department,eligible,created_at")
+    assert chinese_export.startswith("员工编号,姓名,部门,可参与抽奖,创建时间")
+    assert response.status_code == 302
+    assert [(item.employee_no, item.name, item.department) for item in employees] == [
+        ("E001", "Alicia", "Product"),
+        ("E002", "Bob", "Sales"),
+    ]

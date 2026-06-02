@@ -265,6 +265,13 @@ TRANSLATIONS["zh"].update(
         "prize.level": "奖项等级",
         "prize.winner_count": "中奖人数",
         "prize.add": "新增",
+        "prize.export": "导出奖项配置",
+        "prize.import_title": "导入奖项配置",
+        "prize.import_hint": "CSV 表头：id,name,level,winner_count,active。id 可留空。",
+        "prize.choose_csv": "选择 CSV 文件",
+        "prize.import": "导入配置",
+        "prize.imported": "奖项配置导入完成：新增 {created} 项，更新 {updated} 项。",
+        "prize.import_invalid": "请选择有效的奖项配置 CSV 文件。",
         "prize.settings": "抽奖设置",
         "prize.roll_names": "姓名滚动",
         "prize.current": "当前为{state}。",
@@ -476,6 +483,13 @@ TRANSLATIONS["en"].update(
         "prize.level": "Prize Level",
         "prize.winner_count": "Winner Count",
         "prize.add": "Add",
+        "prize.export": "Export Prize Config",
+        "prize.import_title": "Import Prize Config",
+        "prize.import_hint": "CSV headers: id,name,level,winner_count,active. id may be blank.",
+        "prize.choose_csv": "Choose CSV",
+        "prize.import": "Import Config",
+        "prize.imported": "Prize config imported: {created} created, {updated} updated.",
+        "prize.import_invalid": "Please choose a valid prize config CSV file.",
         "prize.settings": "Draw Settings",
         "prize.roll_names": "Name Rolling",
         "prize.current": "Currently {state}.",
@@ -780,6 +794,43 @@ def result_filter_presets():
             "end_date": today.strftime("%Y/%m/%d"),
         },
     }
+
+
+def parse_csv_bool(value, default=True):
+    if value is None:
+        return default
+    normalized = str(value).strip().lower()
+    if normalized in {"1", "true", "yes", "y", "on", "active", "是", "可抽取"}:
+        return True
+    if normalized in {
+        "0",
+        "false",
+        "no",
+        "n",
+        "off",
+        "inactive",
+        "removed",
+        "否",
+        "已移除",
+    }:
+        return False
+    return default
+
+
+def parse_positive_int(value, default=1):
+    try:
+        parsed = int(str(value).strip())
+    except (TypeError, ValueError):
+        return default
+    return max(1, parsed)
+
+
+def csv_row_value(row, *keys):
+    for key in keys:
+        value = row.get(key)
+        if value not in (None, ""):
+            return value
+    return None
 
 
 class User(db.Model):
@@ -1678,13 +1729,16 @@ def register_routes(app):
             employee_no = (
                 row.get("employee_no")
                 or row.get("number")
+                or row.get("Employee No.")
+                or row.get("Employee No")
+                or row.get("Employee Number")
                 or row.get("员工编号")
                 or row.get("编号")
                 or ""
             ).strip()
-            name = (row.get("name") or row.get("姓名") or "").strip()
+            name = (row.get("name") or row.get("Name") or row.get("姓名") or "").strip()
             department = (
-                row.get("department") or row.get("部门") or ""
+                row.get("department") or row.get("Department") or row.get("部门") or ""
             ).strip()
             if not employee_no or not name:
                 continue
@@ -1712,7 +1766,10 @@ def register_routes(app):
     def export_employees():
         output = StringIO()
         writer = csv.writer(output)
-        writer.writerow(["员工编号", "姓名", "部门", "可参与抽奖", "创建时间"])
+        if getattr(g, "language", "zh") == "en":
+            writer.writerow(["employee_no", "name", "department", "eligible", "created_at"])
+        else:
+            writer.writerow(["员工编号", "姓名", "部门", "可参与抽奖", "创建时间"])
         for employee in Employee.query.order_by(
             Employee.department,
             Employee.employee_no,
@@ -1722,7 +1779,11 @@ def register_routes(app):
                     employee.employee_no,
                     employee.name,
                     employee.department,
-                    "是" if employee.eligible else "否",
+                    (
+                        ("1" if employee.eligible else "0")
+                        if getattr(g, "language", "zh") == "en"
+                        else ("是" if employee.eligible else "否")
+                    ),
                     employee.created_at.isoformat(),
                 ]
             )
@@ -1803,8 +1864,8 @@ def register_routes(app):
     @permission_required("prize.create")
     def add_prize():
         name = request.form.get("name", "").strip()
-        level = int(request.form.get("level", "1"))
-        winner_count = int(request.form.get("winner_count", "1"))
+        level = parse_positive_int(request.form.get("level", "1"))
+        winner_count = parse_positive_int(request.form.get("winner_count", "1"))
         if not name:
             flash("请填写奖项名称。", "error")
             return redirect(url_for("prizes"))
@@ -1818,6 +1879,89 @@ def register_routes(app):
         )
         db.session.commit()
         flash("奖项已新增。", "success")
+        return redirect(url_for("prizes"))
+
+    @app.get("/prizes/export.csv")
+    @permission_required("prize.view")
+    def export_prizes():
+        output = StringIO()
+        writer = csv.writer(output)
+        if getattr(g, "language", "zh") == "en":
+            writer.writerow(["id", "name", "level", "winner_count", "active"])
+        else:
+            writer.writerow(["id", "奖项名称", "奖项等级", "中奖人数", "可抽取"])
+        for prize in Prize.query.order_by(Prize.level, Prize.id).all():
+            writer.writerow(
+                [
+                    prize.id,
+                    prize.name,
+                    prize.level,
+                    prize.winner_count,
+                    (
+                        ("1" if prize.active else "0")
+                        if getattr(g, "language", "zh") == "en"
+                        else ("是" if prize.active else "否")
+                    ),
+                ]
+            )
+        return Response(
+            output.getvalue(),
+            mimetype="text/csv",
+            headers={"Content-Disposition": "attachment; filename=prizes.csv"},
+        )
+
+    @app.post("/prizes/import")
+    @permission_required("prize.create")
+    def import_prizes():
+        upload = request.files.get("file")
+        if not upload:
+            flash(translate("prize.import_invalid"), "error")
+            return redirect(url_for("prizes"))
+
+        try:
+            text = upload.stream.read().decode("utf-8-sig")
+        except UnicodeDecodeError:
+            flash(translate("prize.import_invalid"), "error")
+            return redirect(url_for("prizes"))
+
+        reader = csv.DictReader(StringIO(text))
+        created = 0
+        updated = 0
+        for row in reader:
+            name = (csv_row_value(row, "name", "奖项名称") or "").strip()
+            if not name:
+                continue
+
+            level = parse_positive_int(csv_row_value(row, "level", "奖项等级"), 1)
+            winner_count = parse_positive_int(
+                csv_row_value(row, "winner_count", "中奖人数"),
+                1,
+            )
+            active = parse_csv_bool(csv_row_value(row, "active", "可抽取", "状态"), True)
+            prize = None
+            prize_id = parse_positive_int(csv_row_value(row, "id", "ID"), 0)
+            if prize_id:
+                prize = db.session.get(Prize, prize_id)
+            if prize is None:
+                prize = Prize.query.filter_by(name=name, level=level).first()
+
+            if prize is None:
+                prize = Prize(name=name)
+                db.session.add(prize)
+                created += 1
+            else:
+                updated += 1
+
+            prize.name = name
+            prize.level = level
+            prize.winner_count = winner_count
+            prize.active = active
+
+        db.session.commit()
+        flash(
+            translate("prize.imported").format(created=created, updated=updated),
+            "success",
+        )
         return redirect(url_for("prizes"))
 
     @app.post("/prizes/reset")
@@ -2029,7 +2173,10 @@ def register_routes(app):
 
         output = StringIO()
         writer = csv.writer(output)
-        writer.writerow(["奖项", "员工编号", "姓名", "部门", "抽奖时间"])
+        if getattr(g, "language", "zh") == "en":
+            writer.writerow(["prize", "employee_no", "name", "department", "draw_time"])
+        else:
+            writer.writerow(["奖项", "员工编号", "姓名", "部门", "抽奖时间"])
         query = apply_result_date_filter(DrawResult.query, start_utc, end_utc)
         for result in query.order_by(DrawResult.created_at).all():
             writer.writerow(
