@@ -841,6 +841,18 @@ def csv_download_response(output, filename):
     )
 
 
+def favicon_url_for(app):
+    for filename in ("favicon.ico", "favicon.png"):
+        path = os.path.join(app.static_folder, filename)
+        if os.path.exists(path):
+            return url_for(
+                "static",
+                filename=filename,
+                v=int(os.path.getmtime(path)),
+            )
+    return None
+
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -1265,6 +1277,7 @@ def register_routes(app):
         return {
             "current_user": getattr(g, "current_user", None),
             "auth_enabled": AUTH_ENABLED,
+            "favicon_url": favicon_url_for(app),
             "language": getattr(g, "language", "zh"),
             "supported_languages": SUPPORTED_LANGUAGES,
             "t": translate,
