@@ -5,10 +5,13 @@
   --muted: #667085;
   --line: #d8dee9;
   --panel: #ffffff;
-  --accent: #b42318;
-  --accent-strong: #8f1a11;
-  --blue: #185abc;
-  --danger: #b42318;
+  --accent: #73973f;
+  --accent-strong: #55732d;
+  --blue: #5f7f35;
+  --danger: #4f6f2b;
+  --green-soft: #edf5df;
+  --green-soft-strong: #dbeac4;
+  --green-ink: #3f5d22;
 }
 
 * {
@@ -73,7 +76,7 @@ nav a {
 }
 
 nav a:hover {
-  background: #eef2f8;
+  background: var(--green-soft);
   color: var(--ink);
 }
 
@@ -91,7 +94,7 @@ nav a:hover {
 }
 
 .nav-logout button:hover {
-  background: #eef2f8;
+  background: var(--green-soft);
   color: var(--ink);
 }
 
@@ -184,8 +187,8 @@ nav a:hover {
   align-items: end;
   justify-content: space-between;
   gap: 20px;
-  border-color: #fecdca;
-  background: #fffafa;
+  border-color: var(--green-soft-strong);
+  background: #f8fbf2;
 }
 
 .danger-zone h2,
@@ -335,12 +338,12 @@ button:disabled {
 }
 
 .secondary {
-  background: #e8eef8;
+  background: var(--green-soft);
   color: var(--blue);
 }
 
 .danger {
-  background: #fee4e2;
+  background: var(--green-soft-strong);
   color: var(--danger);
 }
 
@@ -423,17 +426,17 @@ th {
 .message {
   padding: 12px 14px;
   border-radius: 8px;
-  background: #eef2f8;
+  background: var(--green-soft);
 }
 
 .message.error {
-  background: #fee4e2;
-  color: #912018;
+  background: #e8efd8;
+  color: #4f6f2b;
 }
 
 .message.success {
-  background: #dcfae6;
-  color: #05603a;
+  background: #e1f1cf;
+  color: #3f5d22;
 }
 
 .login-page {
@@ -441,7 +444,7 @@ th {
   display: grid;
   place-items: center;
   background:
-    linear-gradient(135deg, rgba(180, 35, 24, 0.08), rgba(24, 90, 188, 0.08)),
+    linear-gradient(135deg, rgba(115, 151, 63, 0.11), rgba(159, 189, 103, 0.08)),
     var(--bg);
 }
 
@@ -503,8 +506,8 @@ th {
   align-content: center;
   gap: 8px;
   padding: 18px;
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
+  background: #f8fbf2;
+  border: 1px solid var(--green-soft-strong);
   border-radius: 8px;
   opacity: 0;
   transform: translateY(18px) scale(0.98);
