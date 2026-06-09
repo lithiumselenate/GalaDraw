@@ -23,14 +23,18 @@
         <h1>{{ session.prize.name }}</h1>
         <div class="winner-grid showtime-winners">
           {% for winner in session.results %}
-            <article class="winner-card {% if winner.status == 'waived' %}is-waived{% endif %}{% if not show_animation %} show{% endif %}">
-              <span>{{ winner.employee.employee_no }}</span>
-              <strong>{{ winner.employee.name }}</strong>
-              <em>{{ winner.employee.department }}</em>
-              <small>{{ t("results.status_waived") if winner.status == "waived" else t("results.status_active") }}</small>
+            <article
+              class="winner-card {% if winner.status == 'waived' %}is-waived{% endif %}{% if not show_animation %} show{% endif %}"
+              data-winner-card
+              data-winner-name="{{ winner.employee.name }}"
+            >
+              <span data-winner-number>{{ winner.employee.employee_no }}</span>
+              <strong data-winner-name>{{ winner.employee.name }}</strong>
+              <em data-winner-department>{{ winner.employee.department }}</em>
               {% if winner.status == "active" %}
                 <form
                   class="winner-redraw-form"
+                  data-redraw-form
                   method="post"
                   action="{{ url_for('waive_and_redraw_result', result_id=winner.id) }}"
                   onsubmit="return confirm('{{ t('draw.waive_redraw_confirm') }}');"

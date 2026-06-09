@@ -945,7 +945,12 @@ th {
 }
 
 .showtime-winners .winner-card {
-  min-height: 172px;
+  height: 228px;
+  min-height: 228px;
+  grid-template-rows: 20px minmax(82px, 1fr) 24px 46px;
+  align-content: stretch;
+  justify-items: center;
+  overflow: hidden;
   border-color: color-mix(in srgb, var(--showtime-accent) 44%, transparent);
   background: var(--showtime-panel-bg);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
@@ -954,7 +959,21 @@ th {
 }
 
 .showtime-winners .winner-card.is-waived {
-  opacity: 0.74;
+  opacity: 0.56;
+}
+
+.showtime-winners .winner-card.is-waived strong {
+  color: var(--showtime-muted);
+}
+
+.showtime-winners .winner-card.is-redrawing {
+  border-color: color-mix(in srgb, var(--showtime-accent) 72%, transparent);
+  box-shadow: 0 24px 70px rgba(115, 151, 63, 0.28);
+  transform: translateY(-4px) scale(1.01);
+}
+
+.showtime-winners .winner-card.is-redrawing strong {
+  animation: tickerFlicker 120ms linear infinite;
 }
 
 .showtime-winners .winner-card.show {
@@ -962,23 +981,62 @@ th {
 }
 
 .showtime-winners .winner-card span,
-.showtime-winners .winner-card em,
-.showtime-winners .winner-card small {
+.showtime-winners .winner-card em {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
   color: var(--showtime-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .showtime-winners .winner-card strong {
+  width: 100%;
+  min-width: 0;
+  max-height: 132px;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  overscroll-behavior: contain;
   color: var(--showtime-accent-strong);
-  font-size: clamp(30px, 4vw, 48px);
+  font-size: clamp(28px, 4vw, 46px);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+  text-align: center;
+  text-wrap: balance;
 }
 
-.showtime-winners .winner-card small {
-  font-weight: 900;
+.showtime-winners .winner-card strong::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.showtime-winners .winner-card strong::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--showtime-accent) 56%, transparent);
+}
+
+.showtime-winners .winner-card strong::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.showtime-winners .winner-card strong {
+  scrollbar-color: color-mix(in srgb, var(--showtime-accent) 56%, transparent) transparent;
+  scrollbar-width: thin;
 }
 
 .winner-redraw-form {
   justify-self: center;
   margin-top: 6px;
+}
+
+.winner-redraw-form[hidden] {
+  display: block;
+  visibility: hidden;
+}
+
+.winner-redraw-form .showtime-secondary {
+  min-width: 132px;
 }
 
 .showtime-actions {

@@ -2183,9 +2183,22 @@ def register_routes(app):
     @permission_required("draw.execute")
     def waive_and_redraw_result(result_id):
         result = DrawResult.query.get_or_404(result_id)
+        wants_json = (
+            request.headers.get("X-Requested-With") == "XMLHttpRequest"
+            or request.accept_mimetypes.best == "application/json"
+        )
+        session_url = url_for("draw_session_result", session_id=result.session_id)
         if result.status != "active":
             flash(translate("draw.redraw_no_candidates"), "error")
-            return redirect(url_for("draw_session_result", session_id=result.session_id))
+            if wants_json:
+                return jsonify(
+                    {
+                        "ok": False,
+                        "message": translate("draw.redraw_no_candidates"),
+                        "session_url": session_url,
+                    }
+                ), 409
+            return redirect(session_url)
 
         active_winner_ids = {
             employee_id
@@ -2203,9 +2216,18 @@ def register_routes(app):
         )
         if not candidates:
             flash(translate("draw.redraw_no_candidates"), "error")
-            return redirect(url_for("draw_session_result", session_id=result.session_id))
+            if wants_json:
+                return jsonify(
+                    {
+                        "ok": False,
+                        "message": translate("draw.redraw_no_candidates"),
+                        "session_url": session_url,
+                    }
+                ), 400
+            return redirect(session_url)
 
         replacement = random.choice(candidates)
+        old_winner = result.employee
         old_name = result.employee.name
         result.status = "waived"
         result.waived_at = datetime.utcnow()
@@ -2228,7 +2250,29 @@ def register_routes(app):
             ),
             "success",
         )
-        return redirect(url_for("draw_session_result", session_id=result.session_id))
+        if wants_json:
+            return jsonify(
+                {
+                    "ok": True,
+                    "old_winner": {
+                        "employee_no": old_winner.employee_no,
+                        "name": old_winner.name,
+                        "department": old_winner.department,
+                    },
+                    "new_winner": {
+                        "employee_no": replacement.employee_no,
+                        "name": replacement.name,
+                        "department": replacement.department,
+                    },
+                    "candidates": [candidate.name for candidate in candidates],
+                    "message": translate("draw.redraw_completed").format(
+                        old_name=old_name,
+                        new_name=replacement.name,
+                    ),
+                    "session_url": session_url,
+                }
+            )
+        return redirect(session_url)
 
     @app.post("/draw")
     @permission_required("draw.execute")

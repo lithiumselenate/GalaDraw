@@ -1,5 +1,6 @@
 const drawForm = document.querySelector("[data-draw-form]");
 const winnerCards = Array.from(document.querySelectorAll(".winner-card"));
+const redrawForms = Array.from(document.querySelectorAll("[data-redraw-form]"));
 
 function parseColor(value) {
   const trimmed = String(value || "").trim();
@@ -85,6 +86,69 @@ async function createDrawSession(form) {
   return payload;
 }
 
+async function createRedraw(form) {
+  const response = await fetch(form.action, {
+    method: "POST",
+    body: new FormData(form),
+    headers: {
+      "Accept": "application/json",
+      "X-Requested-With": "XMLHttpRequest",
+    },
+  });
+  const payload = await response.json();
+
+  if (!response.ok || !payload.ok) {
+    if (payload.message) {
+      window.alert(payload.message);
+    }
+    if (payload.session_url) {
+      window.location.href = payload.session_url;
+    }
+    throw new Error("Redraw request failed.");
+  }
+
+  return payload;
+}
+
+async function runRedrawAnimation(form, payload) {
+  const card = form.closest("[data-winner-card]");
+  if (!card) {
+    return;
+  }
+
+  const number = card.querySelector("[data-winner-number]");
+  const name = card.querySelector("[data-winner-name]");
+  const department = card.querySelector("[data-winner-department]");
+  const rollNames = Array.from(new Set([
+    ...((payload.candidates || []).filter(Boolean)),
+    payload.new_winner.name,
+  ]));
+  let index = 0;
+
+  card.classList.add("is-redrawing");
+  form.hidden = true;
+
+  const timer = setInterval(() => {
+    if (!rollNames.length) {
+      return;
+    }
+    name.textContent = rollNames[index % rollNames.length];
+    number.textContent = "";
+    department.textContent = "";
+    index += 1;
+  }, 80);
+
+  await sleep(2000);
+  clearInterval(timer);
+
+  number.textContent = payload.new_winner.employee_no;
+  name.textContent = payload.new_winner.name;
+  department.textContent = payload.new_winner.department;
+  card.classList.remove("is-redrawing");
+  card.classList.add("show");
+  await sleep(700);
+}
+
 async function runDrawIntro(form, winners) {
   const display = document.querySelector("[data-draw-display]");
   const countdown = document.querySelector("[data-countdown]");
@@ -164,6 +228,24 @@ if (drawForm) {
       drawForm.classList.remove("is-running");
       drawForm.querySelector("button[type='submit']").disabled = false;
     }
+  });
+}
+
+if (redrawForms.length) {
+  redrawForms.forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = form.querySelector("button[type='submit']");
+      button.disabled = true;
+      try {
+        const payload = await createRedraw(form);
+        await runRedrawAnimation(form, payload);
+        window.location.href = payload.session_url;
+      } catch {
+        button.disabled = false;
+        form.hidden = false;
+      }
+    });
   });
 }
 

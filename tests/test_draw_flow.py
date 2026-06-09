@@ -256,6 +256,7 @@ def test_winner_can_waive_prize_and_redraw_replacement(client, module):
 
     response = client.post(
         f"/draw/results/{original_result_id}/redraw",
+        headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
         follow_redirects=False,
     )
 
@@ -265,7 +266,14 @@ def test_winner_can_waive_prize_and_redraw_replacement(client, module):
         active_results = [item for item in results if item.status == "active"]
         waived_results = [item for item in results if item.status == "waived"]
 
-    assert response.status_code == 302
+    assert response.status_code == 200
+    assert response.json["ok"] is True
+    assert response.json["old_winner"]["name"] in {"Alice", "Bob", "Carol"}
+    assert response.json["new_winner"]["name"] in {"Alice", "Bob", "Carol"}
+    assert response.json["old_winner"]["name"] != response.json["new_winner"]["name"]
+    assert response.json["old_winner"]["name"] not in response.json["candidates"]
+    assert response.json["new_winner"]["name"] in response.json["candidates"]
+    assert "/draw/sessions/" in response.json["session_url"]
     assert len(results) == 2
     assert len(active_results) == 1
     assert len(waived_results) == 1
