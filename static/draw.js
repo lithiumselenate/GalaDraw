@@ -54,6 +54,15 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function createRequestId() {
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+
+  const randomPart = () => Math.random().toString(16).slice(2);
+  return `${Date.now()}-${randomPart()}-${randomPart()}`;
+}
+
 function getCandidates() {
   const source = document.querySelector("[data-candidates]");
   if (!source) {
@@ -214,7 +223,7 @@ async function runDrawIntro(form, winners) {
 
 if (drawForm) {
   const requestIdInput = drawForm.querySelector("input[name='request_id']");
-  requestIdInput.value = crypto.randomUUID();
+  requestIdInput.value = createRequestId();
 
   drawForm.addEventListener("submit", async (event) => {
     event.preventDefault();

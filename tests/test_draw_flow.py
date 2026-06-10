@@ -135,6 +135,29 @@ def test_export_and_import_prize_config(client, module):
     ]
 
 
+def test_update_prize_winner_count(client, module):
+    client.post(
+        "/prizes",
+        data={"name": "First Prize", "level": "1", "winner_count": "1"},
+    )
+
+    with module.app.app_context():
+        prize = module.Prize.query.filter_by(name="First Prize").one()
+        prize_id = prize.id
+
+    response = client.post(
+        f"/prizes/{prize_id}/winner-count",
+        data={"winner_count": "4"},
+        follow_redirects=False,
+    )
+
+    with module.app.app_context():
+        updated_prize = module.db.session.get(module.Prize, prize_id)
+
+    assert response.status_code == 302
+    assert updated_prize.winner_count == 4
+
+
 def test_prize_config_csv_headers_follow_language_and_import_chinese_headers(
     client,
     module,

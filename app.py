@@ -269,6 +269,8 @@ TRANSLATIONS["zh"].update(
         "prize.name_placeholder": "一等奖",
         "prize.level": "奖项等级",
         "prize.winner_count": "中奖人数",
+        "prize.save_winner_count": "保存人数",
+        "prize.winner_count_updated": "{name} 的中奖人数已更新为 {count}。",
         "prize.add": "新增",
         "prize.export": "导出奖项配置",
         "prize.import_title": "导入奖项配置",
@@ -500,6 +502,8 @@ TRANSLATIONS["en"].update(
         "prize.name_placeholder": "First Prize",
         "prize.level": "Prize Level",
         "prize.winner_count": "Winner Count",
+        "prize.save_winner_count": "Save Count",
+        "prize.winner_count_updated": "{name} winner count updated to {count}.",
         "prize.add": "Add",
         "prize.export": "Export Prize Config",
         "prize.import_title": "Import Prize Config",
@@ -2066,6 +2070,24 @@ def register_routes(app):
         db.session.commit()
         flash(
             translate("prize.imported").format(created=created, updated=updated),
+            "success",
+        )
+        return redirect(url_for("prizes"))
+
+    @app.post("/prizes/<int:prize_id>/winner-count")
+    @permission_required("prize.update")
+    def update_prize_winner_count(prize_id):
+        prize = Prize.query.get_or_404(prize_id)
+        prize.winner_count = parse_positive_int(
+            request.form.get("winner_count"),
+            prize.winner_count,
+        )
+        db.session.commit()
+        flash(
+            translate("prize.winner_count_updated").format(
+                name=prize.name,
+                count=prize.winner_count,
+            ),
             "success",
         )
         return redirect(url_for("prizes"))

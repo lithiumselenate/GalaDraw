@@ -215,6 +215,10 @@ nav a:hover {
   gap: 8px;
 }
 
+.inline-form .compact-number {
+  width: 92px;
+}
+
 .table-actions {
   display: flex;
   flex-wrap: wrap;

@@ -51,7 +51,16 @@
         <tr>
           <td>{{ prize.level }}</td>
           <td>{{ prize.name }}</td>
-          <td>{{ prize.winner_count }}</td>
+          <td>
+            {% if has_permission('prize.update') %}
+              <form class="inline-form" method="post" action="{{ url_for('update_prize_winner_count', prize_id=prize.id) }}">
+                <input class="compact-number" name="winner_count" type="number" min="1" value="{{ prize.winner_count }}" required>
+                <button class="secondary" type="submit">{{ t("prize.save_winner_count") }}</button>
+              </form>
+            {% else %}
+              {{ prize.winner_count }}
+            {% endif %}
+          </td>
           <td>{{ t("prize.active") if prize.active else t("prize.removed") }}</td>
           <td>
             <div class="table-actions">
