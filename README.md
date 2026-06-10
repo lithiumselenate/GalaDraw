@@ -16,24 +16,20 @@
 均为在项目根目录运行
 - Python 3.10+
 - pip
+- git
 
-启动虚拟环境
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-安装依赖：
+安装依赖，配置虚拟环境和运行
 
 ```powershell
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
 pip install -r requirements.txt
+python -m venv .venv
+python app.py
 ```
 
-运行
-
+获取代码仓库的更新
 ```powershell
-python app.py
+git pull
 ```
 
 打开网页
