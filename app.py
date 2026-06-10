@@ -1314,7 +1314,7 @@ def register_routes(app):
     @app.get("/settings")
     @permission_required("draw.configure")
     def settings():
-        return render_template("settings.html")
+        return render_template("settings.html", settings=get_draw_settings())
 
     @app.post("/settings/language")
     @permission_required("draw.configure")
@@ -2124,7 +2124,7 @@ def register_routes(app):
         set_int_setting("DRAW_COUNTDOWN_SECONDS", countdown_seconds, 1, 10)
         db.session.commit()
         flash("抽奖设置已更新。", "success")
-        return redirect(url_for("prizes"))
+        return redirect(url_for("settings"))
 
     @app.post("/employees/reset")
     @permission_required("employee.reset")
