@@ -48,39 +48,41 @@
     </thead>
     <tbody>
       {% for prize in prizes %}
-        <tr>
+        <tr class="prize-row" data-prize-id="{{ prize.id }}">
           <td>{{ prize.level }}</td>
           <td>{{ prize.name }}</td>
           <td>
             {% if has_permission('prize.update') %}
-              <form class="inline-form" method="post" action="{{ url_for('update_prize_winner_count', prize_id=prize.id) }}">
+              <form class="inline-form ajax-winner-count-form" method="post" action="{{ url_for('update_prize_winner_count', prize_id=prize.id) }}">
                 <input class="compact-number" name="winner_count" type="number" min="1" value="{{ prize.winner_count }}" required>
                 <button class="secondary" type="submit">{{ t("prize.save_winner_count") }}</button>
+                <span class="inline-status" aria-live="polite"></span>
               </form>
             {% else %}
               {{ prize.winner_count }}
             {% endif %}
           </td>
-          <td>{{ t("prize.active") if prize.active else t("prize.removed") }}</td>
+          <td class="prize-active-status">{{ t("prize.active") if prize.active else t("prize.removed") }}</td>
           <td>
             <div class="table-actions">
               {% if prize.active %}
-                <form class="inline-form" method="post" action="{{ url_for('remove_prize', prize_id=prize.id) }}">
+                <form class="inline-form ajax-prize-toggle-form" method="post" action="{{ url_for('remove_prize', prize_id=prize.id) }}">
                   <button class="secondary" type="submit">{{ t("prize.remove") }}</button>
                 </form>
               {% else %}
-                <form class="inline-form" method="post" action="{{ url_for('restore_prize', prize_id=prize.id) }}">
+                <form class="inline-form ajax-prize-toggle-form" method="post" action="{{ url_for('restore_prize', prize_id=prize.id) }}">
                   <button class="primary" type="submit">{{ t("prize.restore") }}</button>
                 </form>
               {% endif %}
               <form
-                class="inline-form"
+                class="inline-form ajax-row-delete-form"
                 method="post"
                 action="{{ url_for('delete_prize', prize_id=prize.id) }}"
                 onsubmit="return confirm('{{ t('prize.delete_confirm') }}');"
               >
                 <button class="danger" type="submit">{{ t("prize.delete") }}</button>
               </form>
+              <span class="inline-status row-status" aria-live="polite"></span>
             </div>
           </td>
         </tr>
@@ -96,6 +98,100 @@
       const picker = input.closest(".file-picker");
       const name = picker.querySelector(".file-picker-name");
       name.textContent = input.files.length ? input.files[0].name : name.dataset.emptyText;
+    });
+  });
+
+  const postAjaxForm = async (form) => {
+    const response = await fetch(form.action, {
+      method: "POST",
+      body: new FormData(form),
+      headers: {
+        "Accept": "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.message || response.statusText);
+    }
+    return payload;
+  };
+
+  document.querySelectorAll(".ajax-winner-count-form").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = form.querySelector("button[type='submit']");
+      const input = form.querySelector("input[name='winner_count']");
+      const status = form.querySelector(".inline-status");
+      const originalText = button.textContent;
+
+      button.disabled = true;
+      status.textContent = "";
+      status.classList.remove("error");
+
+      try {
+        const payload = await postAjaxForm(form);
+        input.value = payload.winner_count;
+        status.textContent = payload.message;
+      } catch (error) {
+        status.textContent = error.message;
+        status.classList.add("error");
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+      }
+    });
+  });
+
+  document.querySelectorAll(".ajax-prize-toggle-form").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const row = form.closest(".prize-row");
+      const button = form.querySelector("button[type='submit']");
+      const status = row.querySelector(".row-status");
+
+      button.disabled = true;
+      status.textContent = "";
+      status.classList.remove("error");
+
+      try {
+        const payload = await postAjaxForm(form);
+        row.querySelector(".prize-active-status").textContent = payload.status_label;
+        form.action = payload.action_url;
+        button.textContent = payload.action_label;
+        button.className = payload.action_class;
+        status.textContent = payload.message;
+      } catch (error) {
+        status.textContent = error.message;
+        status.classList.add("error");
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+
+  document.querySelectorAll(".ajax-row-delete-form").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      if (event.defaultPrevented) {
+        return;
+      }
+      event.preventDefault();
+      const row = form.closest("tr");
+      const button = form.querySelector("button[type='submit']");
+      const status = row.querySelector(".row-status");
+
+      button.disabled = true;
+      status.textContent = "";
+      status.classList.remove("error");
+
+      try {
+        await postAjaxForm(form);
+        row.remove();
+      } catch (error) {
+        status.textContent = error.message;
+        status.classList.add("error");
+        button.disabled = false;
+      }
     });
   });
 </script>

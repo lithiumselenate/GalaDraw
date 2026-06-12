@@ -1877,6 +1877,26 @@ def register_routes(app):
         employee = Employee.query.get_or_404(employee_id)
         employee.eligible = request.form.get("eligible") == "1"
         db.session.commit()
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify(
+                {
+                    "ok": True,
+                    "eligible": employee.eligible,
+                    "eligible_label": (
+                        translate("common.yes")
+                        if employee.eligible
+                        else translate("common.no")
+                    ),
+                    "next_value": "0" if employee.eligible else "1",
+                    "next_label": (
+                        translate("employee.set_ineligible")
+                        if employee.eligible
+                        else translate("employee.set_eligible")
+                    ),
+                    "next_button_class": "secondary" if employee.eligible else "primary",
+                    "message": f"{employee.name} 已设为{'可参与' if employee.eligible else '不可参与'}。",
+                }
+            )
         flash(
             f"{employee.name} 已设为{'可参与' if employee.eligible else '不可参与'}。",
             "success",
@@ -1916,6 +1936,13 @@ def register_routes(app):
         )
         db.session.delete(employee)
         db.session.commit()
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify(
+                {
+                    "ok": True,
+                    "message": translate("employee.deleted").format(name=employee_name),
+                }
+            )
         flash(translate("employee.deleted").format(name=employee_name), "success")
         return redirect(url_for("employees"))
 
@@ -2083,13 +2110,20 @@ def register_routes(app):
             prize.winner_count,
         )
         db.session.commit()
-        flash(
-            translate("prize.winner_count_updated").format(
-                name=prize.name,
-                count=prize.winner_count,
-            ),
-            "success",
+        message = translate("prize.winner_count_updated").format(
+            name=prize.name,
+            count=prize.winner_count,
         )
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify(
+                {
+                    "ok": True,
+                    "winner_count": prize.winner_count,
+                    "message": message,
+                }
+            )
+
+        flash(message, "success")
         return redirect(url_for("prizes"))
 
     @app.post("/prizes/reset")
@@ -2108,6 +2142,18 @@ def register_routes(app):
         prize = Prize.query.get_or_404(prize_id)
         prize.active = False
         db.session.commit()
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify(
+                {
+                    "ok": True,
+                    "active": False,
+                    "status_label": translate("prize.removed"),
+                    "action_url": url_for("restore_prize", prize_id=prize.id),
+                    "action_label": translate("prize.restore"),
+                    "action_class": "primary",
+                    "message": f"{prize.name} 已从后续抽奖中移除，历史结果已保留。",
+                }
+            )
         flash(f"{prize.name} 已从后续抽奖中移除，历史结果已保留。", "success")
         return redirect(url_for("prizes"))
 
@@ -2117,6 +2163,18 @@ def register_routes(app):
         prize = Prize.query.get_or_404(prize_id)
         prize.active = True
         db.session.commit()
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify(
+                {
+                    "ok": True,
+                    "active": True,
+                    "status_label": translate("prize.active"),
+                    "action_url": url_for("remove_prize", prize_id=prize.id),
+                    "action_label": translate("prize.remove"),
+                    "action_class": "secondary",
+                    "message": f"{prize.name} 已恢复到抽奖列表。",
+                }
+            )
         flash(f"{prize.name} 已恢复到抽奖列表。", "success")
         return redirect(url_for("prizes"))
 
@@ -2129,6 +2187,13 @@ def register_routes(app):
         DrawSession.query.filter_by(prize_id=prize.id).delete()
         db.session.delete(prize)
         db.session.commit()
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify(
+                {
+                    "ok": True,
+                    "message": f"{prize_name} 已删除，关联抽奖结果也已清理。",
+                }
+            )
         flash(f"{prize_name} 已删除，关联抽奖结果也已清理。", "success")
         return redirect(url_for("prizes"))
 

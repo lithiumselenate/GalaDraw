@@ -158,6 +158,87 @@ def test_update_prize_winner_count(client, module):
     assert updated_prize.winner_count == 4
 
 
+def test_update_prize_winner_count_ajax_returns_json(client, module):
+    client.post(
+        "/prizes",
+        data={"name": "First Prize", "level": "1", "winner_count": "1"},
+    )
+
+    with module.app.app_context():
+        prize = module.Prize.query.filter_by(name="First Prize").one()
+        prize_id = prize.id
+
+    response = client.post(
+        f"/prizes/{prize_id}/winner-count",
+        data={"winner_count": "3"},
+        headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+    )
+
+    with module.app.app_context():
+        updated_prize = module.db.session.get(module.Prize, prize_id)
+
+    assert response.status_code == 200
+    assert response.json["ok"] is True
+    assert response.json["winner_count"] == 3
+    assert updated_prize.winner_count == 3
+
+
+def test_prize_remove_restore_ajax_returns_row_state(client, module):
+    client.post(
+        "/prizes",
+        data={"name": "First Prize", "level": "1", "winner_count": "1"},
+    )
+
+    with module.app.app_context():
+        prize = module.Prize.query.filter_by(name="First Prize").one()
+        prize_id = prize.id
+
+    remove_response = client.post(
+        f"/prizes/{prize_id}/remove",
+        headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+    )
+    restore_response = client.post(
+        f"/prizes/{prize_id}/restore",
+        headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+    )
+
+    with module.app.app_context():
+        updated_prize = module.db.session.get(module.Prize, prize_id)
+
+    assert remove_response.status_code == 200
+    assert remove_response.json["ok"] is True
+    assert remove_response.json["active"] is False
+    assert "/restore" in remove_response.json["action_url"]
+    assert restore_response.status_code == 200
+    assert restore_response.json["ok"] is True
+    assert restore_response.json["active"] is True
+    assert "/remove" in restore_response.json["action_url"]
+    assert updated_prize.active is True
+
+
+def test_delete_prize_ajax_returns_success(client, module):
+    client.post(
+        "/prizes",
+        data={"name": "First Prize", "level": "1", "winner_count": "1"},
+    )
+
+    with module.app.app_context():
+        prize = module.Prize.query.filter_by(name="First Prize").one()
+        prize_id = prize.id
+
+    response = client.post(
+        f"/prizes/{prize_id}/delete",
+        headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+    )
+
+    with module.app.app_context():
+        deleted_prize = module.db.session.get(module.Prize, prize_id)
+
+    assert response.status_code == 200
+    assert response.json["ok"] is True
+    assert deleted_prize is None
+
+
 def test_prize_config_csv_headers_follow_language_and_import_chinese_headers(
     client,
     module,

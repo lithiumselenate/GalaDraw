@@ -219,6 +219,18 @@ nav a:hover {
   width: 92px;
 }
 
+.inline-status {
+  align-self: center;
+  color: var(--accent-strong);
+  font-size: 0.9rem;
+  font-weight: 800;
+  max-width: 220px;
+}
+
+.inline-status.error {
+  color: #9f2d2d;
+}
+
 .table-actions {
   display: flex;
   flex-wrap: wrap;

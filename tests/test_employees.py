@@ -36,6 +36,46 @@ def test_create_update_and_export_employee(client, module):
     assert "Alice" in export_response.get_data(as_text=True)
 
 
+def test_update_employee_eligibility_ajax_returns_row_state(client, module):
+    client.post(
+        "/employees",
+        data={
+            "employee_no": "E001",
+            "name": "Alice",
+            "department": "Engineering",
+            "eligible": "on",
+        },
+    )
+
+    with module.app.app_context():
+        employee = module.Employee.query.filter_by(employee_no="E001").one()
+        employee_id = employee.id
+
+    disable_response = client.post(
+        f"/employees/{employee_id}/eligibility",
+        data={"eligible": "0"},
+        headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+    )
+    enable_response = client.post(
+        f"/employees/{employee_id}/eligibility",
+        data={"eligible": "1"},
+        headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+    )
+
+    with module.app.app_context():
+        updated_employee = module.db.session.get(module.Employee, employee_id)
+
+    assert disable_response.status_code == 200
+    assert disable_response.json["ok"] is True
+    assert disable_response.json["eligible"] is False
+    assert disable_response.json["next_value"] == "1"
+    assert enable_response.status_code == 200
+    assert enable_response.json["ok"] is True
+    assert enable_response.json["eligible"] is True
+    assert enable_response.json["next_value"] == "0"
+    assert updated_employee.eligible is True
+
+
 def test_import_employees_csv_creates_and_updates_rows(client, module):
     first_upload = BytesIO(
         b"employee_no,name,department\nE001,Alice,Engineering\nE002,Bob,Sales\n"
@@ -114,6 +154,34 @@ def test_employee_csv_headers_follow_language_and_import_english_headers(
         ("E001", "Alicia", "Product"),
         ("E002", "Bob", "Sales"),
     ]
+
+
+def test_delete_employee_ajax_returns_success(client, module):
+    client.post(
+        "/employees",
+        data={
+            "employee_no": "E001",
+            "name": "Alice",
+            "department": "Engineering",
+            "eligible": "on",
+        },
+    )
+
+    with module.app.app_context():
+        employee = module.Employee.query.filter_by(employee_no="E001").one()
+        employee_id = employee.id
+
+    response = client.post(
+        f"/employees/{employee_id}/delete",
+        headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+    )
+
+    with module.app.app_context():
+        deleted_employee = module.db.session.get(module.Employee, employee_id)
+
+    assert response.status_code == 200
+    assert response.json["ok"] is True
+    assert deleted_employee is None
 
 
 def test_delete_employee_cleans_related_records(client, module):
