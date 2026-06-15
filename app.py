@@ -2,7 +2,7 @@ import csv
 import os
 import random
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from io import StringIO
 
@@ -189,6 +189,12 @@ TRANSLATIONS = {
         "settings.language.invalid": "Please select a valid language.",
     },
 }
+
+
+def utc_now():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 TRANSLATIONS["zh"].update(
     {
         "role.superadmin": "超级管理员",
@@ -761,7 +767,7 @@ def translate(key):
 
 def china_day_bounds_utc():
     china_offset = timedelta(hours=8)
-    today_in_china = (datetime.utcnow() + china_offset).date()
+    today_in_china = (utc_now() + china_offset).date()
     start = datetime.combine(today_in_china, datetime.min.time()) - china_offset
     return start, start + timedelta(days=1)
 
@@ -825,7 +831,7 @@ def result_export_filename(filters):
 
 
 def result_filter_presets():
-    today = (datetime.utcnow() + timedelta(hours=8)).date()
+    today = (utc_now() + timedelta(hours=8)).date()
     year_start = today.replace(month=1, day=1)
     return {
         "today": {
@@ -903,7 +909,7 @@ class User(db.Model):
     role = db.Column(db.String(20), default="user", nullable=False)
     status = db.Column(db.String(20), default="pending", nullable=False)
     employee_id = db.Column(db.Integer, db.ForeignKey("employee.id"), unique=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
     approved_at = db.Column(db.DateTime)
     approved_by_id = db.Column(db.Integer, db.ForeignKey("user.id"))
 
@@ -935,7 +941,7 @@ class RolePermission(db.Model):
 class CheckIn(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
 
     user = db.relationship("User")
 
@@ -945,7 +951,7 @@ class EmployeeLinkRequest(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     employee_id = db.Column(db.Integer, db.ForeignKey("employee.id"), nullable=False)
     status = db.Column(db.String(20), default="pending", nullable=False)
-    requested_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    requested_at = db.Column(db.DateTime, default=utc_now, nullable=False)
     reviewed_at = db.Column(db.DateTime)
     reviewed_by_id = db.Column(db.Integer, db.ForeignKey("user.id"))
 
@@ -960,7 +966,7 @@ class Employee(db.Model):
     name = db.Column(db.String(120), nullable=False)
     department = db.Column(db.String(120), default="")
     eligible = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
 
 
 class Prize(db.Model):
@@ -969,7 +975,7 @@ class Prize(db.Model):
     level = db.Column(db.Integer, default=1, nullable=False)
     winner_count = db.Column(db.Integer, default=1, nullable=False)
     active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
 
 
 class AppSetting(db.Model):
@@ -983,7 +989,7 @@ class DrawSession(db.Model):
     request_id = db.Column(db.String(64), unique=True, nullable=False)
     prize_id = db.Column(db.Integer, db.ForeignKey("prize.id"), nullable=False)
     count = db.Column(db.Integer, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
 
     prize = db.relationship("Prize")
     results = db.relationship(
@@ -1000,7 +1006,7 @@ class DrawResult(db.Model):
     prize_id = db.Column(db.Integer, db.ForeignKey("prize.id"), nullable=False)
     employee_id = db.Column(db.Integer, db.ForeignKey("employee.id"), nullable=False)
     status = db.Column(db.String(20), default="active", nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
     waived_at = db.Column(db.DateTime)
 
     session = db.relationship("DrawSession", back_populates="results")
@@ -1053,7 +1059,7 @@ def seed_auth_data():
             username=ADMIN_USERNAME,
             role="superadmin",
             status="active",
-            approved_at=datetime.utcnow(),
+            approved_at=utc_now(),
         )
         superadmin.set_password(ADMIN_INITIAL_PASSWORD)
         db.session.add(superadmin)
@@ -1471,14 +1477,14 @@ def register_routes(app):
             return redirect(url_for("employee_link_requests"))
         if link_request.user.employee_id:
             link_request.status = "rejected"
-            link_request.reviewed_at = datetime.utcnow()
+            link_request.reviewed_at = utc_now()
             link_request.reviewed_by_id = g.current_user.id
             db.session.commit()
             flash("该用户已经关联了员工信息。", "error")
             return redirect(url_for("employee_link_requests"))
         if User.query.filter_by(employee_id=link_request.employee_id).first():
             link_request.status = "rejected"
-            link_request.reviewed_at = datetime.utcnow()
+            link_request.reviewed_at = utc_now()
             link_request.reviewed_by_id = g.current_user.id
             db.session.commit()
             flash("该员工已经关联到其他账户。", "error")
@@ -1486,7 +1492,7 @@ def register_routes(app):
 
         link_request.user.employee_id = link_request.employee_id
         link_request.status = "approved"
-        link_request.reviewed_at = datetime.utcnow()
+        link_request.reviewed_at = utc_now()
         link_request.reviewed_by_id = g.current_user.id
         db.session.commit()
         flash("员工信息关联已批准。", "success")
@@ -1500,7 +1506,7 @@ def register_routes(app):
             flash("该申请已经审核过。", "error")
             return redirect(url_for("employee_link_requests"))
         link_request.status = "rejected"
-        link_request.reviewed_at = datetime.utcnow()
+        link_request.reviewed_at = utc_now()
         link_request.reviewed_by_id = g.current_user.id
         db.session.commit()
         flash("员工信息关联已拒绝。", "success")
@@ -1543,7 +1549,7 @@ def register_routes(app):
 
         user = User(username=username, role=role, status=status)
         if status == "active":
-            user.approved_at = datetime.utcnow()
+            user.approved_at = utc_now()
             user.approved_by_id = g.current_user.id
         user.set_password(password)
         db.session.add(user)
@@ -1597,7 +1603,7 @@ def register_routes(app):
             return redirect(url_for("accounts"))
         user.status = status
         if status == "active" and user.approved_at is None:
-            user.approved_at = datetime.utcnow()
+            user.approved_at = utc_now()
             user.approved_by_id = g.current_user.id
         db.session.commit()
         flash("账户状态已更新。", "success")
@@ -1675,7 +1681,7 @@ def register_routes(app):
         user = User.query.get_or_404(user_id)
         user.status = "active"
         user.role = "user"
-        user.approved_at = datetime.utcnow()
+        user.approved_at = utc_now()
         user.approved_by_id = g.current_user.id
         db.session.commit()
         flash("注册申请已批准。", "success")
@@ -2317,7 +2323,7 @@ def register_routes(app):
         old_winner = result.employee
         old_name = result.employee.name
         result.status = "waived"
-        result.waived_at = datetime.utcnow()
+        result.waived_at = utc_now()
         result.employee.eligible = True
         db.session.add(
             DrawResult(
